@@ -10,7 +10,12 @@ use Data::Dumper;
 require "./libs/Net/MQTT/Simple.pm";
 require "./libs/LoxBerry/JSON/JSONIO.pm";
 
-$cfgfile = "$lbpplugindir/mqtt.json";
+my $cfgfile = "$lbpconfigdir/mqtt.json";
+
+print "Configfile: $cfgfile\n";
+if(! -e $cfgfile) {
+	print "ERROR: Cannot find config file $cfgfile";
+}
 
 my $log = LoxBerry::Log->new (
     name => 'MQTT Gateway',
@@ -42,13 +47,20 @@ LOGINF "If you use UDP Monitor, you have to take actions that changes are pushed
 my %miniservers;
 %miniservers = LoxBerry::System::get_miniservers();
 
-LOGINF "Subscriptions: " . join(", ", @{$cfg->{subscriptions}}) . "\n";
+my $mqtt;
 
-my $mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
+if ($cfg->{subscriptions}) {
+	LOGINF "Subscriptions: " . join(", ", @{$cfg->{subscriptions}});
+	$mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
+
+} else {
+	LOGWARN "No subscriptions!";
+}
+
 
 # Subscribe
 foreach my $topic (@{$cfg->{subscriptions}}) {
-	LOFINF "Subscribing $topic";
+	LOGINF "Subscribing $topic";
 	$mqtt->subscribe($topic, \&received);
 }
 
@@ -64,15 +76,22 @@ sub received
 {
 
 	my ($topic, $message) = @_;
-	LOGDEB "$topic: $message\n";
+	LOGINF "$topic: $message";
 	if(is_enabled($cfg->{Main}{convert_booleans}) and is_enabled($message)) {
-		LOGDEB "Converting $message to 1";
+		LOGDEB "  Converting $message to 1";
 		$message = "1";
 	} elsif ( is_enabled($cfg->{Main}{convert_booleans}) and is_disabled($message) ) {
-		LOGDEB "Converting $message to 0";
+		LOGDEB "  Converting $message to 0";
 		$message = "0";
 	}
-	if( $cfg->{Main}{msno} and $cfg->{Main}{udpport} and $miniservers{$cfg->{Main}{msno}}) {
-		LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", $topic, $message);
+	if( is_enabled($cfg->{Main}{use_udp}) ) {
+		if( $cfg->{Main}{msno} and $cfg->{Main}{udpport} and $miniservers{$cfg->{Main}{msno}}) {
+			LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", $topic, $message);
+		}
+	}
+	if( is_enabled($cfg->{Main}{use_http}) and $miniservers{$cfg->{Main}{msno}} ) {
+		$topic =~ s/\//_/g;
+		LOGDEB "  Sending as $topic to MS No. " . $cfg->{Main}{msno};
+		LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
 	}
 }
