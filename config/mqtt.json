@@ -1,8 +1,9 @@
 {
   "Main": {
     "brokeraddress": "localhost",
-    "msno": "2",
-    "udpport": "11883"
+    "msno": "1",
+    "udpport": "11883",
+	"convert_booleans": 1,
   },
   "subscriptions" : [
     "shellies/#"

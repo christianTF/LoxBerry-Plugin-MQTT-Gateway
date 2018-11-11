@@ -1,0 +1,2 @@
+#!/bin/bash
+su loxberry -c "REPLACELBPBINDIR/mqttgateway.pl > /dev/null 2>&1"
