@@ -1,0 +1,10 @@
+{
+  "Main": {
+    "brokeraddress": "localhost",
+    "msno": "2",
+    "udpport": "11883"
+  },
+  "subscriptions" : [
+    "shellies/#"
+  ]
+}
