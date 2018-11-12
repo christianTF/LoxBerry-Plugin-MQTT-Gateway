@@ -1,1 +1,58 @@
-<p>Nothing to do here currently</p>
+<style>
+.mono {
+	font-family:monospace;
+	font-size:110%;
+	font-weight:bold;
+	color:green;
+
+}
+</style>
+
+<div class="wide">MQTT Gateway for Loxone</div>
+
+<div data-role="fieldcontain">
+	<label for="subscriptions">MQTT subscriptions</label>
+	<textarea name="subscriptions"></textarea>
+	<p class="hint">One subscription topic per line. For Shelly devices, use <span class="mono">shellies/#</span></p>
+</div>
+
+<div data-role="fieldcontain">
+	<fieldset data-role="controlgroup">
+		<legend>Type sending the data to Miniserver</legend>
+		<input type="checkbox" name="Main.use_http" id="Main.use_http">
+		<label for="Main.use_http">Set virtual inputs via HTTP webservice</label>
+		<input type="checkbox" name="Main.use_udp" id="Main.use_udp">
+		<label for="Main.use_udp">Send data via UDP</label>
+		<p class="hint">See the Wiki for details how to configure your inputs on your Miniserver.</p>
+	</fieldset>
+	
+<div>
+
+<div data-role="fieldcontain">
+	<!-- <label for="Main.msno">Miniserver to relay to</label> -->
+	<TMPL_VAR mslist_select_html>
+</div>
+
+<div data-role="fieldcontain">
+	<label for="Main.udpport">Miniserver UDP port</label>
+	<input name="Main.udpport" type="text" />
+	<p class="hint">Default UDP port is 11883</p>
+</div>
+
+<fieldset data-role="controlgroup">
+	<legend>Data transformations</legend>
+	<input type="checkbox" name="Main.convert_booleans" id="Main.convert_booleans">
+	<label for="Main.convert_booleans">Convert booleans to 1 and 0</label>
+</fieldset>
+
+<div data-role="fieldcontain">
+	<label for="brokeraddress">MQTT Broker address</label>
+	<input name="brokeraddress" type="text" />
+	<p class="hint">Default is <span class="mono">localhost</span> for the local Mosquitto installation.</p>
+</div>
+
+<button>Save and Apply</button>
+
+<script>
+
+</script>

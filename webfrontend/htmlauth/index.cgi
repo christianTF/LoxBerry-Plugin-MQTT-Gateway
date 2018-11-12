@@ -14,6 +14,11 @@ my $template = HTML::Template->new(
     die_on_bad_params => 0,
 );
 
+
+my $mslist_select_html = LoxBerry::Web::mslist_select_html( FORMID => 'Main.msno', LABEL => 'Miniserver to relay to' );
+$template->param('mslist_select_html', $mslist_select_html);
+
+
 print $template->output();
 
 LoxBerry::Web::lbfooter();
