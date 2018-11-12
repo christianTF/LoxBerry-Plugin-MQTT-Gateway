@@ -7,8 +7,8 @@ use strict;
 
 use Data::Dumper;
 
-require "./libs/Net/MQTT/Simple.pm";
-require "./libs/LoxBerry/JSON/JSONIO.pm";
+require "$lbpbindir/libs/Net/MQTT/Simple.pm";
+require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
 my $json;
@@ -28,8 +28,12 @@ my $log = LoxBerry::Log->new (
 	filename => "$lbplogdir/mqttgateway.log",
 	append => 1,
 	stdout => 1,
-	loglevel => 7
+	loglevel => 7,
+	addtime => 1
+	
 );
+
+LOGSTART "MQTT Gateway started";
 
 LOGINF "KEEP IN MIND: LoxBerry MQTT only sends CHANGED values to the Miniserver.";
 LOGINF "If you use UDP Monitor, you have to take actions that changes are pushed.";
@@ -65,12 +69,13 @@ sub received
 	}
 	if( is_enabled($cfg->{Main}{use_udp}) ) {
 		if( $cfg->{Main}{msno} and $cfg->{Main}{udpport} and $miniservers{$cfg->{Main}{msno}}) {
+			LOGDEB "  UDP: Sending as $topic to MS No. " . $cfg->{Main}{msno};
 			LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", $topic, $message);
 		}
 	}
 	if( is_enabled($cfg->{Main}{use_http}) and $miniservers{$cfg->{Main}{msno}} ) {
 		$topic =~ s/\//_/g;
-		LOGDEB "  Sending as $topic to MS No. " . $cfg->{Main}{msno};
+		LOGDEB "  HTTP: Sending as $topic to MS No. " . $cfg->{Main}{msno};
 		LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
 	}
 }
@@ -78,7 +83,7 @@ sub received
 sub read_config
 {
 	my $mtime = (stat($cfgfile))[9];
-	if($cfg_timestamp and $cfg_timestamp == $mtime and $cfg) {
+	if(defined $cfg_timestamp and $cfg_timestamp == $mtime and defined $cfg) {
 		return;
 	}
 	
@@ -109,9 +114,14 @@ sub read_config
 		
 		# Unsubscribe old topics
 		if($mqtt) {
-			foreach my $topic (@subscriptions) {
-				LOGINF "UNsubscribing $topic";
-				$mqtt->unsubscribe($topic);
+			eval {
+				foreach my $topic (@subscriptions) {
+					LOGINF "UNsubscribing $topic";
+					$mqtt->unsubscribe($topic);
+				}
+			};
+			if ($@) {
+				LOGERR "Exception catched on unsubscribing old topics: $!";
 			}
 		}
 		
@@ -119,14 +129,18 @@ sub read_config
 		
 		# Reconnect MQTT broker
 		LOGINF "Connecting broker $cfg->{Main}{brokeraddress}";
-		$mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
-		
-		@subscriptions = @{$cfg->{subscriptions}};
-		# Re-Subscribe new topics
-		foreach my $topic (@subscriptions) {
-			LOGINF "Subscribing $topic";
-			$mqtt->subscribe($topic, \&received);
+		eval {
+			$mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
+			
+			@subscriptions = @{$cfg->{subscriptions}};
+			# Re-Subscribe new topics
+			foreach my $topic (@subscriptions) {
+				LOGINF "Subscribing $topic";
+				$mqtt->subscribe($topic, \&received);
+			}
+		};
+		if ($@) {
+			LOGERR "Exception catched on reconnecting and subscribing: $!";
 		}
-		
 	}
 }

@@ -86,14 +86,52 @@ $(function() {
 	
 });
 
+$('input, textarea, select').change(function(event) {
+	var id = $(this).attr('id');
+	var inputType = $(this).attr('type');
+	console.log(id, inputType, event);
+		
+	if (id == "subscriptions") {
+		console.log("subscritions content",  $("#"+id).val());
+		cfg.subscriptions = $.trim($("#"+id).val()).split("\n");
+		console.log("Subscriptions Array", cfg.subscriptions);
+	} else if (id.startsWith("Main.")) {
+		var idarray = id.split(".");
+		if(inputType === "checkbox") {
+			cfg.Main[idarray[1]] = $(this).is(":checked");
+		} else {
+			// console.log(idarray[0], idarray[1], $("#Main\\."+idarray[1]).val());
+		
+			cfg.Main[idarray[1]] = $(this).val();
+		}
+	}
+
+
+
+});
+
+
 $("#saveapply").click(function(){
 
-	var data = $('form').serialize();
-	console.log("Submitting form", data);
+	// var data = $('form').serialize() + "&save=true";
+	console.log("Submitting form", cfg);
 	
-
-
-
+	$.ajax( { 
+			type: 'POST',
+			url: 'ajax.cgi', 
+			dataType: 'json',
+			contentType: 'text/plain; charset=UTF-8',
+			data: JSON.stringify(cfg)
+		} )
+	.done(function() {
+		console.log( "Success" );
+	})
+	.fail(function() {
+		console.log( "Error" );
+	})
+	.always(function() {
+		console.log( "Finished" );
+	});
 	
 });
 
