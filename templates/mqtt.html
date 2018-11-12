@@ -7,12 +7,12 @@
 
 }
 </style>
-
-<div class="wide">MQTT Gateway for Loxone</div>
+<form id="form" onsubmit="return false;">
+<div class="wide">MQTT to Miniserver</div>
 
 <div data-role="fieldcontain">
 	<label for="subscriptions">MQTT subscriptions</label>
-	<textarea name="subscriptions"></textarea>
+	<textarea name="subscriptions" id="subscriptions"></textarea>
 	<p class="hint">One subscription topic per line. For Shelly devices, use <span class="mono">shellies/#</span></p>
 </div>
 
@@ -35,7 +35,7 @@
 
 <div data-role="fieldcontain">
 	<label for="Main.udpport">Miniserver UDP port</label>
-	<input name="Main.udpport" type="text" />
+	<input name="Main.udpport" id="Main.udpport" type="text" />
 	<p class="hint">Default UDP port is 11883</p>
 </div>
 
@@ -47,12 +47,55 @@
 
 <div data-role="fieldcontain">
 	<label for="brokeraddress">MQTT Broker address</label>
-	<input name="brokeraddress" type="text" />
+	<input name="Main.brokeraddress" id="Main.brokeraddress" type="text" />
 	<p class="hint">Default is <span class="mono">localhost</span> for the local Mosquitto installation.</p>
 </div>
 
-<button>Save and Apply</button>
+<div class="wide">Miniserver to MQTT</div>
+<p>Not yet implemented.</p>
+
+
+<button id="saveapply">Save and Apply</button>
+
+</form>
 
 <script>
+
+var cfg;
+
+
+$(function() {
+	cfg = JSON.parse('<TMPL_VAR JSONCONFIG>');
+	console.log("Config", cfg, cfg.Main, cfg.subscriptions);
+	
+	// Elements in subscriptions
+	$("#subscriptions").text( cfg.subscriptions.join("\n") );
+	
+	// Elements in Main
+	for(var elemname in cfg.Main) {
+		var inputType = $("#Main\\."+elemname).attr('type');
+		console.log("Element", elemname, cfg.Main[elemname], inputType);
+		if(inputType == "checkbox" && cfg.Main[elemname] == 1) {
+			$("#Main\\."+elemname).prop('checked', true);
+		} else {
+			$("#Main\\."+elemname).val(cfg.Main[elemname]);
+		}
+	}
+	$('select').selectmenu('refresh', true);
+	$('input:checkbox').checkboxradio('refresh');
+	
+});
+
+$("#saveapply").click(function(){
+
+	var data = $('form').serialize();
+	console.log("Submitting form", data);
+	
+
+
+
+	
+});
+
 
 </script>
