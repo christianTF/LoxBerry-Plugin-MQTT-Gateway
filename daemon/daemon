@@ -1,2 +1,2 @@
 #!/bin/bash
-su loxberry -c "cd REPLACELBPBINDIR ; REPLACELBPBINDIR/mqttgateway.pl > /dev/null 2>&1"
+su loxberry -c "cd REPLACELBPBINDIR ; REPLACELBPBINDIR/mqttgateway.pl > /dev/null 2>&1 &"
