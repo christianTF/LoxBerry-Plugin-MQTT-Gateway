@@ -181,12 +181,12 @@ function update_pids()
 		ajax: 'getpids' })
 	.done(function(resp) {
 		// console.log( "ajax_post", "success", resp );
-		if(resp.pids.mqttgateway != "") {
+		if(resp.pids.mqttgateway != null) {
 			$("#gatewaystate").attr("style", "color:green").html("MQTT Gateway running (PID"+resp.pids.mqttgateway+")");
 		} else {
 			$("#gatewaystate").attr("style", "color:red").html("MQTT Gateway not running");
 		}
-		if(resp.pids.mosquitto != "") {
+		if(resp.pids.mosquitto != null) {
 			$("#mosquittostate").attr("style", "color:green").html("Mosquitto running (PID"+resp.pids.mosquitto+")");
 		} else {
 			$("#mosquittostate").attr("style", "color:red").html("Mosquitto not running");
@@ -194,7 +194,9 @@ function update_pids()
 		
   })
   .fail(function(resp) {
-		// console.log( "ajax_post", "failed", resp );
+		$("#gatewaystate").attr("style", "color:red").html("Failed to query PIDs");
+		$("#mosquittostate").attr("style", "color:red").html("Failed to query PIDs");
+		
   })
   .always(function(resp) {
 		// console.log( "ajax_post", "finished", resp );
