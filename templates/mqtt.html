@@ -6,6 +6,10 @@
 	color:green;
 
 }
+#overlay 
+{
+  display: none !important;
+}
 </style>
 <form id="form" onsubmit="return false;">
 <div class="wide">MQTT to Miniserver</div>
@@ -54,9 +58,15 @@
 <div class="wide">Miniserver to MQTT</div>
 <p>Not yet implemented.</p>
 
-
-<button id="saveapply">Save and Apply</button>
-
+<div style="display:flex;align-items:center;justify-content:center;">
+<button class="ui-btn ui-btn-icon-right" id="saveapply" data-inline="true">Save and Apply</button>
+<button class="ui-btn ui-btn-icon-right" id="restartmqttgateway" data-inline="true">Restart</button>
+</div>
+<div style="display:flex;align-items:center;justify-content:center;">
+	<span id="savemessages"></span>&nbsp;
+	&nbsp;<span id="gatewaystate"></span>&nbsp;| 
+	&nbsp;<span id="mosquittostate"></span>
+</div>
 </form>
 
 <script>
@@ -65,6 +75,10 @@ var cfg;
 
 
 $(function() {
+	
+	setInterval(function(){ update_pids(); }, 5000);
+	update_pids();
+	
 	cfg = JSON.parse('<TMPL_VAR JSONCONFIG>');
 	console.log("Config", cfg, cfg.Main, cfg.subscriptions);
 	
@@ -87,6 +101,8 @@ $(function() {
 });
 
 $('input, textarea, select').change(function(event) {
+	$("#savemessages").attr("style", "color:blue").html("Unsaved changes |");
+
 	var id = $(this).attr('id');
 	var inputType = $(this).attr('type');
 	console.log(id, inputType, event);
@@ -115,7 +131,7 @@ $("#saveapply").click(function(){
 
 	// var data = $('form').serialize() + "&save=true";
 	console.log("Submitting form", cfg);
-	
+	$("#saveapply").attr("disabled", true);
 	$.ajax( { 
 			type: 'POST',
 			url: 'ajax.cgi', 
@@ -125,15 +141,66 @@ $("#saveapply").click(function(){
 		} )
 	.done(function() {
 		console.log( "Success" );
+		$("#savemessages").attr("style", "color:green").html("Saved successfully |");
 	})
 	.fail(function() {
 		console.log( "Error" );
+		$("#savemessages").attr("style", "color:red").html("Error saving |");
 	})
 	.always(function() {
 		console.log( "Finished" );
+		$("#saveapply").attr("disabled", false);
+	
 	});
 	
 });
+
+$("#restartmqttgateway").click(function(){
+	console.log("Restart pressed");
+	$("#restartmqttgateway").attr("disabled", true);
+	$.post( 'index.cgi', {
+		ajax: 'restartgateway' })
+	.done(function(resp) {
+		console.log( "ajax_post", "success", resp );
+  })
+  .fail(function(resp) {
+		console.log( "ajax_post", "failed", resp );
+  })
+  .always(function(resp) {
+		console.log( "ajax_post", "finished", resp );
+	$("#restartmqttgateway").attr("disabled", false);
+	update_pids();
+		
+  });
+});
+
+function update_pids() 
+{
+
+	$.post( 'index.cgi', {
+		ajax: 'getpids' })
+	.done(function(resp) {
+		// console.log( "ajax_post", "success", resp );
+		if(resp.pids.mqttgateway != "") {
+			$("#gatewaystate").attr("style", "color:green").html("MQTT Gateway running (PID"+resp.pids.mqttgateway+")");
+		} else {
+			$("#gatewaystate").attr("style", "color:red").html("MQTT Gateway not running");
+		}
+		if(resp.pids.mosquitto != "") {
+			$("#mosquittostate").attr("style", "color:green").html("Mosquitto running (PID"+resp.pids.mosquitto+")");
+		} else {
+			$("#mosquittostate").attr("style", "color:red").html("Mosquitto not running");
+		}
+		
+  })
+  .fail(function(resp) {
+		// console.log( "ajax_post", "failed", resp );
+  })
+  .always(function(resp) {
+		// console.log( "ajax_post", "finished", resp );
+
+	});
+}
 
 
 </script>

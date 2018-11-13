@@ -43,7 +43,7 @@ if($error) {
 	print $cgi->header(
 		-type => 'application/json',
 		-charset => 'utf-8',
-		-status => '200 OK',
+		-status => '204 NO CONTENT',
 	);	
 }	
 			

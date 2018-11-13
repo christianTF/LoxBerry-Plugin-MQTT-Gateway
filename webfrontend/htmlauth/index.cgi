@@ -9,12 +9,29 @@ my $cfgfile = "$lbpconfigdir/mqtt.json";
 my $cgi = CGI->new;
 my $q = $cgi->Vars;
 
-if($q->{save}) {
-	save_json();
+my %pids;
+
+if( $q->{ajax} ) {
+	require JSON;
+	my %response;
+	ajax_header();
+	if( $q->{ajax} eq "getpids" ) {
+		pids();
+		$response{pids} = \%pids;
+	}
+	if( $q->{ajax} eq "restartgateway" ) {
+		pkill('mqttgateway.pl');
+		`cd $lbpbindir ; $lbpbindir/mqttgateway.pl > /dev/null 2>&1 &`;
+		pids();
+		$response{pids} = \%pids;
+	}
+	print JSON::encode_json(\%response);
+	exit;
+
 } else {
 	main_form();
 }
-
+exit;
 
 ########################################################################
 # Main Form 
@@ -62,3 +79,30 @@ sub main_form
 }
 
 
+sub pids 
+{
+	
+	$pids{'mqttgateway'} = trim(`pgrep mqttgateway.pl`) ;
+	$pids{'mosquitto'} = trim(`pgrep mosquitto`) ;
+
+}	
+
+sub pkill 
+{
+	my ($process) = @_;
+	return `pkill $process`;
+
+}	
+
+	
+	
+sub ajax_header
+{
+	print $cgi->header(
+			-type => 'application/json',
+			-charset => 'utf-8',
+			-status => '200 OK',
+	);	
+}	
+	
+	
