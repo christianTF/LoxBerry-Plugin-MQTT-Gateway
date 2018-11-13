@@ -2,6 +2,5 @@
 # Will be executed as user "root".
 
 # Enable auto-start of Mosquitto service
-systemctl enable mosquitto.service
-systemctl start mosquitto.service
+/etc/init.d/mosquitto start
 exit 0
