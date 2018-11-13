@@ -4,7 +4,8 @@ use LoxBerry::IO;
 use LoxBerry::Log;
 use warnings;
 use strict;
-
+use IO::Socket;
+	
 use Data::Dumper;
 
 require "$lbpbindir/libs/Net/MQTT/Simple.pm";
@@ -14,9 +15,17 @@ my $cfgfile = "$lbpconfigdir/mqtt.json";
 my $json;
 my $cfg;
 my $cfg_timestamp;
+my $nextconfigpoll;
 my $mqtt;
 my @subscriptions;
 
+# UDP
+my $udpinsock;
+my $udpmsg;
+my $udpremhost;
+my $udpMAXLEN = 1024;
+		
+	
 print "Configfile: $cfgfile\n";
 while (! -e $cfgfile) {
 	print "ERROR: Cannot find config file $cfgfile";
@@ -43,13 +52,40 @@ my %miniservers;
 %miniservers = LoxBerry::System::get_miniservers();
 
 read_config();
-
+create_in_socket();
+	
 # Capture messages
 while(1) {
-	if(time%5 == 0) {
+	if(time>$nextconfigpoll) {
 		read_config();
+		if(!$udpinsock) {
+			create_in_socket();
+		}
 	}
 	$mqtt->tick();
+	
+	# UDP Receive data from UDP socket
+	eval {
+		$udpinsock->recv($udpmsg, $udpMAXLEN);
+	};
+	if($udpmsg) {
+		my($port, $ipaddr) = sockaddr_in($udpinsock->peername);
+		$udpremhost = gethostbyaddr($ipaddr, AF_INET);
+		LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
+		## Send to MQTT Broker
+		# Check incoming message
+		my ($udptopic, $udpmessage) = split(/\ /, trim($udpmsg));
+		LOGDEB "Relaying: '$udptopic'='$udpmessage'";
+		eval {
+			$mqtt->publish($udptopic, $udpmessage);
+		};
+		if($@) {
+			LOGERR "Catched exception on sending to MQTT: $!";
+		}
+		
+		# $udpinsock->send("CONFIRM: $udpmsg ");
+	} 
+	
 	Time::HiRes::sleep(0.1);
 }
 
@@ -82,12 +118,15 @@ sub received
 
 sub read_config
 {
+	$nextconfigpoll = time+5;
+	
 	my $mtime = (stat($cfgfile))[9];
 	if(defined $cfg_timestamp and $cfg_timestamp == $mtime and defined $cfg) {
 		return;
 	}
 	
 	$cfg_timestamp = $mtime;
+	
 	
 	LOGOK "Reading config changes";
 	# $LoxBerry::JSON::JSONIO::DEBUG = 1;
@@ -103,7 +142,9 @@ sub read_config
 	# Setting default values
 		if(! defined $cfg->{Main}{msno}) { $cfg->{Main}{msno} = 1; }
 		if(! defined $cfg->{Main}{udpport}) { $cfg->{Main}{udpport} = 11883; }
-		# if(! defined $cfg->{Main}{brokeraddress}) { $cfg->{Main}{brokeraddress} = 'localhost:1883'; }
+		if(! defined $cfg->{Main}{brokeraddress}) { $cfg->{Main}{brokeraddress} = 'localhost'; }
+		if(! defined $cfg->{Main}{udpinport}) { $cfg->{Main}{udpinport} = 11883; }
+		
 
 		LOGDEB "JSON Dump:";
 		LOGDEB Dumper($cfg);
@@ -142,5 +183,36 @@ sub read_config
 		if ($@) {
 			LOGERR "Exception catched on reconnecting and subscribing: $!";
 		}
+		
+		# Clean UDP socket
+		create_in_socket();
+	
+	}
+}
+
+
+
+sub create_in_socket 
+{
+
+	undef $udpinsock;
+	# UDP in socket
+	LOGDEB "Creating udp-in socket";
+	$udpinsock = IO::Socket::INET->new(
+		# LocalAddr => 'localhost', 
+		LocalPort => $cfg->{Main}{udpinport}, 
+		#Blocking => 0,
+		Proto => 'udp') or LOGERR "Could not create UDP IN socket: $@";
+		
+	if($udpinsock) {
+		IO::Handle::blocking($udpinsock, 0);
+		LOGOK "UDP-IN listening on port " . $cfg->{Main}{udpinport};
+	}
+}
+
+END
+{
+	if($log) {
+		LOGEND "MQTT Gateway exited";
 	}
 }
