@@ -86,7 +86,7 @@ while(1) {
 		# $udpinsock->send("CONFIRM: $udpmsg ");
 	} 
 	
-	Time::HiRes::sleep(0.1);
+	Time::HiRes::sleep(0.05);
 }
 
 
