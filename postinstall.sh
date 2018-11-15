@@ -61,13 +61,16 @@ PBIN=$LBPBIN/$PDIR
 
 
 echo "<INFO> Copy back existing config files"
-cp -f -r /tmp/$ARGV1\_upgrade/config/$ARGV3/* $ARGV5/config/plugins/$ARGV3/ 
+cp -f -r /tmp/$PTEMPDIR\_upgrade/config/$PDIR/* $LBHOMEDIR/config/plugins/$PDIR/ 
 
 echo "<INFO> Remove temporary folders"
-rm -f -r /tmp/$ARGV1\_upgrade
+rm -f -r /tmp/$PTEMPDIR\_upgrade
 
 echo "<INFO> Updating configuration"
 perl $PBIN/updateconfig.pl
+
+echo "<INFO> Starting MQTT Gateway service"
+$PBIN/mqttgateway.pl
 
 # Exit with Status 0
 exit 0
