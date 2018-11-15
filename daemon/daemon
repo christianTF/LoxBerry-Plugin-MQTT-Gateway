@@ -1,3 +1,20 @@
 #!/bin/bash
-/etc/init.d/mosquitto restart
+
+# Request if local Mosquitto is enabled
+MOSQENABLED="$(REPLACELBPBINDIR/updateconfig.pl section=Main param=enable_mosquitto)"
+
+if [ "$MOSQENABLED" -eq "1" ]; then
+	for i in {1...20}
+	do
+		# Check if it is running
+		pgrep mosquitto
+		exitcode=$?
+		if [[ $exitcode != 0 ]]; then
+			# Restart if not
+			systemctl restart mosquitto.service
+			sleep 5
+		fi
+	done
+fi
+
 su loxberry -c "cd REPLACELBPBINDIR ; REPLACELBPBINDIR/mqttgateway.pl > /dev/null 2>&1 &"
