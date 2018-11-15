@@ -1,15 +1,22 @@
 #!/usr/bin/perl
+use FindBin qw($Bin);
+use lib "$Bin/libs";
+
 use Time::HiRes;
 use LoxBerry::IO;
 use LoxBerry::Log;
 use warnings;
 use strict;
 use IO::Socket;
-	
+
+use Net::MQTT::Simple::Auth;
+use LoxBerry::JSON::JSONIO;
+
 use Data::Dumper;
 
-require "$lbpbindir/libs/Net/MQTT/Simple.pm";
-require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
+#require "$lbpbindir/libs/Net/MQTT/Simple.pm";
+#require "$lbpbindir/libs/Net/MQTT/Simple/Auth.pm";
+#require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
 my $json;
@@ -57,6 +64,8 @@ create_in_socket();
 # Capture messages
 while(1) {
 	if(time>$nextconfigpoll) {
+		LOGWARN "No connection to MQTT broker $cfg->{Main}{brokeraddress} - Check host/port/user/pass and your connection." if(!$mqtt->{socket});
+		
 		read_config();
 		if(!$udpinsock) {
 			create_in_socket();
@@ -171,7 +180,10 @@ sub read_config
 		# Reconnect MQTT broker
 		LOGINF "Connecting broker $cfg->{Main}{brokeraddress}";
 		eval {
-			$mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
+			#$mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
+			$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, $cfg->{Main}{brokeruser}, $cfg->{Main}{brokerpass});
+			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, "loxberry", "loxberry");
+			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress});
 			
 			@subscriptions = @{$cfg->{subscriptions}};
 			# Re-Subscribe new topics
