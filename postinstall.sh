@@ -70,7 +70,8 @@ echo "<INFO> Updating configuration"
 perl $PBIN/updateconfig.pl
 
 echo "<INFO> Starting MQTT Gateway service"
-$PBIN/mqttgateway.pl
+cd $PBIN
+$PBIN/mqttgateway.pl > /dev/null 2>&1 &
 
 # Exit with Status 0
 exit 0
