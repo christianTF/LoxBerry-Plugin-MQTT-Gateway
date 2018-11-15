@@ -13,6 +13,7 @@
 </style>
 <form id="form" onsubmit="return false;">
 <div class="wide">MQTT to Miniserver</div>
+<br>
 
 <div data-role="fieldcontain">
 	<label for="subscriptions">MQTT subscriptions</label>
@@ -24,7 +25,7 @@
 	<fieldset data-role="controlgroup">
 		<legend>Type sending the data to Miniserver</legend>
 		<input type="checkbox" name="Main.use_http" id="Main.use_http">
-		<label for="Main.use_http">Set virtual inputs via HTTP webservice</label>
+		<label for="Main.use_http">Set virtual inputs via HTTP webservice (recommended)</label>
 		<input type="checkbox" name="Main.use_udp" id="Main.use_udp">
 		<label for="Main.use_udp">Send data via UDP</label>
 		<p class="hint">See the Wiki for details how to configure your inputs on your Miniserver.</p>
@@ -49,18 +50,41 @@
 	<label for="Main.convert_booleans">Convert booleans to 1 and 0</label>
 </fieldset>
 
-<div data-role="fieldcontain">
-	<label for="brokeraddress">MQTT Broker address</label>
-	<input name="Main.brokeraddress" id="Main.brokeraddress" type="text" />
-	<p class="hint">Default is <span class="mono">localhost</span> for the local Mosquitto installation.</p>
-</div>
-
+<br>
 <div class="wide">Miniserver to MQTT</div>
+<br>
 
 <div data-role="fieldcontain">
 	<label for="Main.udpinport">Gateway UDP in-port</label>
 	<input name="Main.udpinport" id="Main.udpinport" type="text" />
 	<p class="hint">Default UDP IN-port on LoxBerry is 11883</p>
+</div>
+
+<br>
+<div class="wide">MQTT Broker</div>
+<br>
+<fieldset data-role="controlgroup">
+	<legend>Use local Mosquitto broker</legend>
+	<input type="checkbox" name="Main.enable_mosquitto" id="Main.enable_mosquitto">
+	<label for="Main.enable_mosquitto">Use the local Mosquitto MQTT broker (default: enabled)</label>
+</fieldset>
+
+<div data-role="fieldcontain">
+	<label for="Main.brokeraddress">MQTT Broker address</label>
+	<input name="Main.brokeraddress" id="Main.brokeraddress" type="text" />
+	<p class="hint">Default is <span class="mono">localhost</span> for the local Mosquitto installation. Experienced users may use a remote MQTT broker.</p>
+</div>
+
+<div data-role="fieldcontain">
+	<label for="Main.brokeruser">MQTT Broker username</label>
+	<input name="Main.brokeruser" id="Main.brokeruser" type="text" />
+	<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+</div>
+
+<div data-role="fieldcontain">
+	<label for="Main.brokerpass">MQTT Broker password</label>
+	<input name="Main.brokerpass" id="Main.brokerpass" type="text" />
+	<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
 </div>
 
 <div style="display:flex;align-items:center;justify-content:center;">
