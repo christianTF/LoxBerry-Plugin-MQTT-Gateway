@@ -4,7 +4,7 @@
 MOSQENABLED="$(REPLACELBPBINDIR/updateconfig.pl section=Main param=enable_mosquitto)"
 
 if [ "$MOSQENABLED" -eq "1" ]; then
-	for i in {1...20}
+	for i in {1...100}
 	do
 		# Check if it is running
 		pgrep mosquitto
@@ -12,7 +12,7 @@ if [ "$MOSQENABLED" -eq "1" ]; then
 		if [[ $exitcode != 0 ]]; then
 			# Restart if not
 			systemctl restart mosquitto.service
-			sleep 5
+			sleep 10
 		fi
 	done
 fi
