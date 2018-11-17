@@ -44,11 +44,15 @@
 	<p class="hint">Default UDP port is 11883</p>
 </div>
 
-<fieldset data-role="controlgroup">
-	<legend>Data transformations</legend>
-	<input type="checkbox" name="Main.convert_booleans" id="Main.convert_booleans">
-	<label for="Main.convert_booleans">Convert booleans to 1 and 0</label>
-</fieldset>
+<div data-role="fieldcontain">
+	<fieldset data-role="controlgroup">
+		<legend>Data transformations</legend>
+		<input type="checkbox" name="Main.convert_booleans" id="Main.convert_booleans">
+		<label for="Main.convert_booleans">Convert booleans to 1 and 0</label>
+		<input type="checkbox" name="Main.expand_json" id="Main.expand_json">
+		<label for="Main.expand_json">Expand JSON data (EXPERIMENTAL, for HTTP only)</label>
+	</fieldset>
+</div>
 
 <br>
 <div class="wide">Miniserver to MQTT</div>

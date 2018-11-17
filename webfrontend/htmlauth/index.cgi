@@ -18,14 +18,19 @@ if( $q->{ajax} ) {
 	if( $q->{ajax} eq "getpids" ) {
 		pids();
 		$response{pids} = \%pids;
+		print JSON::encode_json(\%response);
 	}
 	if( $q->{ajax} eq "restartgateway" ) {
 		pkill('mqttgateway.pl');
 		`cd $lbpbindir ; $lbpbindir/mqttgateway.pl > /dev/null 2>&1 &`;
 		pids();
 		$response{pids} = \%pids;
+		print JSON::encode_json(\%response);
 	}
-	print JSON::encode_json(\%response);
+	if( $q->{ajax} eq "relayed_topics" ) {
+		my $datafile = "/dev/shm/mqttgateway_topics.json";
+		print LoxBerry::System::read_file($datafile);
+	}
 	exit;
 
 } else {
