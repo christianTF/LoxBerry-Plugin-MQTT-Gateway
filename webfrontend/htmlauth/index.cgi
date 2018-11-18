@@ -18,6 +18,7 @@ if( $q->{ajax} ) {
 	## Handle all ajax requests 
 	
 	require JSON;
+	require Time::HiRes;
 	my %response;
 	ajax_header();
 	if( $q->{ajax} eq "getpids" ) {
@@ -252,7 +253,10 @@ sub pids
 sub pkill 
 {
 	my ($process) = @_;
-	return `pkill --signal SIGTERM $process`;
+	`pkill $process`;
+	Time::HiRes::sleep(0.2);
+	`pkill --signal SIGKILL $process`;
+	
 
 }	
 	

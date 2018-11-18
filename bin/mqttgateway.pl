@@ -18,11 +18,13 @@ use Data::Dumper;
 $SIG{INT} = sub { 
 	LOGTITLE "MQTT Gateway interrupted by Ctrl-C"; 
 	LOGEND(); 
+	exit 1;
 };
 
 $SIG{TERM} = sub { 
 	LOGTITLE "MQTT Gateway requested to stop"; 
-	LOGEND(); 
+	LOGEND();
+	exit 1;	
 };
 
 
@@ -329,6 +331,7 @@ sub create_in_socket
 {
 
 	undef $udpinsock;
+	# sleep 1;
 	# UDP in socket
 	LOGDEB "Creating udp-in socket";
 	$udpinsock = IO::Socket::INET->new(
