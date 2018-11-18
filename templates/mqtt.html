@@ -11,96 +11,224 @@
   display: none !important;
 }
 </style>
-<form id="form" onsubmit="return false;">
-<div class="wide">MQTT to Miniserver</div>
-<br>
 
-<div data-role="fieldcontain">
-	<label for="subscriptions">MQTT subscriptions</label>
-	<textarea name="subscriptions" id="subscriptions"></textarea>
-	<p class="hint">One subscription topic per line. For Shelly devices, use <span class="mono">shellies/#</span></p>
-</div>
+<TMPL_IF FORM_SETTINGS>
+<!-- Form SETTINGS -->
+	<form id="form" onsubmit="return false;">
 
-<div data-role="fieldcontain">
+	<div class="wide">MQTT to Miniserver</div>
+	<br>
+
+	<div data-role="fieldcontain">
+		<fieldset data-role="controlgroup">
+			<legend>Type sending the data to Miniserver</legend>
+			<input type="checkbox" name="Main.use_http" id="Main.use_http">
+			<label for="Main.use_http">Set virtual inputs via HTTP webservice (recommended)</label>
+			<input type="checkbox" name="Main.use_udp" id="Main.use_udp">
+			<label for="Main.use_udp">Send data via UDP</label>
+			<p class="hint">See the Wiki for details how to configure your inputs on your Miniserver.</p>
+		</fieldset>
+		
+	<div>
+
+	<div data-role="fieldcontain">
+		<!-- <label for="Main.msno">Miniserver to relay to</label> -->
+		<TMPL_VAR mslist_select_html>
+	</div>
+
+	<div data-role="fieldcontain">
+		<label for="Main.udpport">Miniserver UDP port</label>
+		<input name="Main.udpport" id="Main.udpport" type="text" />
+		<p class="hint">Default UDP port is 11883</p>
+	</div>
+
+	<div data-role="fieldcontain">
+		<fieldset data-role="controlgroup">
+			<legend>Data transformations</legend>
+			<input type="checkbox" name="Main.convert_booleans" id="Main.convert_booleans">
+			<label for="Main.convert_booleans">Convert booleans to 1 and 0</label>
+			<input type="checkbox" name="Main.expand_json" id="Main.expand_json">
+			<label for="Main.expand_json">Expand JSON data (EXPERIMENTAL, for HTTP only)</label>
+		</fieldset>
+	</div>
+
+	<br>
+	<div class="wide">Miniserver to MQTT</div>
+	<br>
+
+	<div data-role="fieldcontain">
+		<label for="Main.udpinport">Gateway UDP in-port</label>
+		<input name="Main.udpinport" id="Main.udpinport" type="text" />
+		<p class="hint">Default UDP IN-port on LoxBerry is 11883</p>
+	</div>
+
+	<br>
+	<div class="wide">MQTT Broker</div>
+	<br>
 	<fieldset data-role="controlgroup">
-		<legend>Type sending the data to Miniserver</legend>
-		<input type="checkbox" name="Main.use_http" id="Main.use_http">
-		<label for="Main.use_http">Set virtual inputs via HTTP webservice (recommended)</label>
-		<input type="checkbox" name="Main.use_udp" id="Main.use_udp">
-		<label for="Main.use_udp">Send data via UDP</label>
-		<p class="hint">See the Wiki for details how to configure your inputs on your Miniserver.</p>
+		<legend>Use local Mosquitto broker</legend>
+		<input type="checkbox" name="Main.enable_mosquitto" id="Main.enable_mosquitto">
+		<label for="Main.enable_mosquitto">Use the local Mosquitto MQTT broker (default: enabled)</label>
 	</fieldset>
+
+	<div data-role="fieldcontain">
+		<label for="Main.brokeraddress">MQTT Broker address</label>
+		<input name="Main.brokeraddress" id="Main.brokeraddress" type="text" />
+		<p class="hint">Default is <span class="mono">localhost</span> for the local Mosquitto installation. Experienced users may use a remote MQTT broker.</p>
+	</div>
+
+	<div data-role="fieldcontain">
+		<label for="Main.brokeruser">MQTT Broker username</label>
+		<input name="Main.brokeruser" id="Main.brokeruser" type="text" />
+		<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+	</div>
+
+	<div data-role="fieldcontain">
+		<label for="Main.brokerpass">MQTT Broker password</label>
+		<input name="Main.brokerpass" id="Main.brokerpass" type="text" />
+		<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+	</div>
+	</form>
+<!-- /Form SETTINGS -->
+</TMPL_IF>
+
+<TMPL_IF FORM_SUBSCRIPTIONS>
+<!-- Form SUBSCRIPTIONS -->
+	<form id="form" onsubmit="return false;">
+
+	<div class="wide">MQTT Subscriptions</div>
+	<p>Subscriptions are the topics of MQTT devices that are relayed to the Miniserver. A # sign symbols a joker in MQTT. Use exactly the topic(s) provided by the device vendor.</p> 
+	<div data-role="fieldcontain">
+		<label for="subscriptions">MQTT subscriptions <p class="hint">One subscription topic per line. For Shelly devices, use <span class="mono">shellies/#</span></p></label>
+		<textarea name="subscriptions" id="subscriptions" rows="20" data-autogrow="false"></textarea>
+		
+	</div>
 	
-<div>
+	</form>
+<!-- /Form SUBSCRIPTIONS -->
+</TMPL_IF>
 
-<div data-role="fieldcontain">
-	<!-- <label for="Main.msno">Miniserver to relay to</label> -->
-	<TMPL_VAR mslist_select_html>
-</div>
+<TMPL_IF FORM_CONVERSIONS>
+<!-- Form CONVERSIONS -->
+	<form id="form" onsubmit="return false;">
 
-<div data-role="fieldcontain">
-	<label for="Main.udpport">Miniserver UDP port</label>
-	<input name="Main.udpport" id="Main.udpport" type="text" />
-	<p class="hint">Default UDP port is 11883</p>
-</div>
+	<div class="wide">Text-to-Value conversions</div>
+	<p>MQTT devices often are sending strings that Loxone unfortunately cannot handle. In this field you can create text-to-value conversions. You can assign values to incoming strings, that values are sent to the Miniserver, and can be evaluated e.g. with a Status block.</p> 
+	<p>Booleans (on, off etc.) are already converted, if you have 'Boolean conversion' enabled.</p>
+	<div data-role="fieldcontain">
+		<label for="conversions">Text-to-Value conversion <p class="hint">One conversion per line. Use <span class="mono">Text=Value</span></p></label>
+		<textarea name="conversions" id="conversions" rows="20" data-autogrow="false"></textarea>
+	</div>
+	</form>
 
-<div data-role="fieldcontain">
-	<fieldset data-role="controlgroup">
-		<legend>Data transformations</legend>
-		<input type="checkbox" name="Main.convert_booleans" id="Main.convert_booleans">
-		<label for="Main.convert_booleans">Convert booleans to 1 and 0</label>
-		<input type="checkbox" name="Main.expand_json" id="Main.expand_json">
-		<label for="Main.expand_json">Expand JSON data (EXPERIMENTAL, for HTTP only)</label>
-	</fieldset>
-</div>
 
-<br>
-<div class="wide">Miniserver to MQTT</div>
-<br>
+<!-- /Form CONVERSIONS -->
+</TMPL_IF>
 
-<div data-role="fieldcontain">
-	<label for="Main.udpinport">Gateway UDP in-port</label>
-	<input name="Main.udpinport" id="Main.udpinport" type="text" />
-	<p class="hint">Default UDP IN-port on LoxBerry is 11883</p>
-</div>
 
-<br>
-<div class="wide">MQTT Broker</div>
-<br>
-<fieldset data-role="controlgroup">
-	<legend>Use local Mosquitto broker</legend>
-	<input type="checkbox" name="Main.enable_mosquitto" id="Main.enable_mosquitto">
-	<label for="Main.enable_mosquitto">Use the local Mosquitto MQTT broker (default: enabled)</label>
-</fieldset>
+<TMPL_IF FORM_TOPICS>
+<!-- Form TOPICS -->
+	<style>
+	.topics_table {
+		/* font-family: "Trebuchet MS", Arial, Helvetica, sans-serif; */
+		border-collapse: collapse;
+		width: 100%;
+	}
 
-<div data-role="fieldcontain">
-	<label for="Main.brokeraddress">MQTT Broker address</label>
-	<input name="Main.brokeraddress" id="Main.brokeraddress" type="text" />
-	<p class="hint">Default is <span class="mono">localhost</span> for the local Mosquitto installation. Experienced users may use a remote MQTT broker.</p>
-</div>
+	.topics_table td, .topics_table th {
+		border: 1px solid #ddd;
+		padding: 8px;
+	}
 
-<div data-role="fieldcontain">
-	<label for="Main.brokeruser">MQTT Broker username</label>
-	<input name="Main.brokeruser" id="Main.brokeruser" type="text" />
-	<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
-</div>
+	.topics_table tr:nth-child(even){background-color: #f2f2f2;}
 
-<div data-role="fieldcontain">
-	<label for="Main.brokerpass">MQTT Broker password</label>
-	<input name="Main.brokerpass" id="Main.brokerpass" type="text" />
-	<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
-</div>
+	.topics_table tr:hover {background-color: #ddd;}
 
-<div style="display:flex;align-items:center;justify-content:center;">
-<button class="ui-btn ui-btn-icon-right" id="saveapply" data-inline="true">Save and Apply</button>
-<button class="ui-btn ui-btn-icon-right" id="restartmqttgateway" data-inline="true">Restart</button>
-</div>
-<div style="display:flex;align-items:center;justify-content:center;">
-	<span id="savemessages"></span>&nbsp;
-	&nbsp;<span id="gatewaystate"></span>&nbsp;| 
-	&nbsp;<span id="mosquittostate"></span>
-</div>
-</form>
+	.topics_table th {
+		padding-top: 12px;
+		padding-bottom: 12px;
+		text-align: left;
+		background-color: #6dac20;
+		color: white;
+		text-shadow: 1px 1px #333333;
+		
+	}
+	</style>
+	
+	
+	<div class="wide">Last transmissions to Miniserver</div>
+	<p>This page lists the transmissions via the MQTT Gateway to the Miniserver in the last 24 hours. It is refreshed approximately every minute if you press browsers refresh button.<p>
+	<p>You can copy and paste the 'Virtual Input' names for HTTP transmissions, or create command recognitions from the UDP messages.</p>
+	
+	<div data-role='collapsible' id='coll_mqtthttp' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
+		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqtthttp'>HTTP Virtual Inputs <span style='font-size:80%;'>(<TMPL_VAR http_count> entries)</span></h2>
+		<TMPL_VAR http_table>
+	</div>
+	
+	<div data-role='collapsible' id='coll_mqttudp' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
+		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqttudp'>UDP Transmissions <span style='font-size:80%;'>(<TMPL_VAR udp_count> entries)</span></h2>
+		<TMPL_VAR udp_table>
+	</div>
+	
+	
+	<script>
+		$( document ).ready(function() {
+		restoreWindow();
+		$(".ui-collapsible").on("collapsiblecollapse", function(event, ui) {console.log("Collaps", $(this).attr('id'));storeWindow($(this).attr('id'), "collapse");});
+		$(".ui-collapsible").on("collapsibleexpand", function(event, ui) {console.log("Expand", $(this).attr('id'));storeWindow($(this).attr('id'), "expand");});
+		});
+
+		function storeWindow (name, pos) 
+		{
+			sessionStorage.setItem("coll_"+name, pos);
+		}
+
+		function restoreWindow() 
+		{
+			$.each( $(".ui-collapsible"), function ( index, value ) {
+				var pos = sessionStorage.getItem("coll_"+$(value).attr('id'));
+				if(pos === "expand" || pos === "collapse") {
+					$(value).collapsible( pos );
+				} else {
+					sessionStorage.removeItem("coll_"+$(value).attr('id'));
+				}
+				console.log($(value).attr('id'), pos);	}
+			);
+		}
+	</script>
+
+<!-- /Form TOPICS -->
+</TMPL_IF>
+
+
+
+
+<TMPL_IF FORM_LOGS>
+<!-- Form LOGS -->
+<TMPL_VAR loglist_html>
+<!-- /Form LOGS -->
+</TMPL_IF>
+
+
+
+
+
+<TMPL_UNLESS FORM_DISABLE_BUTTONS>
+
+	<div style="display:flex;align-items:center;justify-content:center;">
+	<button class="ui-btn ui-btn-icon-right" id="saveapply" data-inline="true">Save and Apply</button>
+	<button class="ui-btn ui-btn-icon-right" id="restartmqttgateway" data-inline="true">Restart</button>
+	</div>
+	<div style="display:flex;align-items:center;justify-content:center;">
+		<span id="savemessages"></span>&nbsp;
+		&nbsp;<span id="gatewaystate"></span>&nbsp;| 
+		&nbsp;<span id="mosquittostate"></span>
+	</div>
+
+</TMPL_UNLESS>
+
+	
+<TMPL_UNLESS FORM_DISABLE_JS>
 
 <script>
 
@@ -116,7 +244,12 @@ $(function() {
 	console.log("Config", cfg, cfg.Main, cfg.subscriptions);
 	
 	// Elements in subscriptions
-	$("#subscriptions").text( cfg.subscriptions.join("\n") );
+	if( cfg.subscriptions ) 
+		$("#subscriptions").text( cfg.subscriptions.join("\n") );
+	
+	// Elements in conversions
+	if( cfg.conversions )
+		$("#conversions").text( cfg.conversions.join("\n") );
 	
 	// Elements in Main
 	for(var elemname in cfg.Main) {
@@ -144,7 +277,13 @@ $('input, textarea, select').change(function(event) {
 		console.log("subscritions content",  $("#"+id).val());
 		cfg.subscriptions = $.trim($("#"+id).val()).split("\n");
 		console.log("Subscriptions Array", cfg.subscriptions);
-	} else if (id.startsWith("Main.")) {
+	} 
+	else if (id == "conversions") {
+		console.log("conversions content",  $("#"+id).val());
+		cfg.conversions = $.trim($("#"+id).val()).split("\n");
+		console.log("Conversions Array", cfg.conversions);
+	} 
+	else if (id.startsWith("Main.")) {
 		var idarray = id.split(".");
 		if(inputType === "checkbox") {
 			cfg.Main[idarray[1]] = $(this).is(":checked");
@@ -239,3 +378,5 @@ function update_pids()
 
 
 </script>
+
+</TMPL_UNLESS>

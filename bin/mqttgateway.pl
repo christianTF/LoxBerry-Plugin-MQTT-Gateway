@@ -8,11 +8,23 @@ use LoxBerry::Log;
 use warnings;
 use strict;
 use IO::Socket;
+use Scalar::Util qw(looks_like_number);
 
 use Net::MQTT::Simple::Auth;
 use LoxBerry::JSON::JSONIO;
 
 use Data::Dumper;
+
+$SIG{INT} = sub { 
+	LOGTITLE "MQTT Gateway interrupted by Ctrl-C"; 
+	LOGEND(); 
+};
+
+$SIG{TERM} = sub { 
+	LOGTITLE "MQTT Gateway requested to stop"; 
+	LOGEND(); 
+};
+
 
 #require "$lbpbindir/libs/Net/MQTT/Simple.pm";
 #require "$lbpbindir/libs/Net/MQTT/Simple/Auth.pm";
@@ -24,7 +36,12 @@ my $cfg;
 my $cfg_timestamp;
 my $nextconfigpoll;
 my $mqtt;
+
+# Subscriptions
 my @subscriptions;
+
+# Conversions
+my %conversions;
 
 # Hash to store all submitted topics
 my %relayed_topics_udp;
@@ -152,7 +169,7 @@ sub received
 	}
 	
 	# Boolean conversion
-	if(is_enabled($cfg->{Main}{convert_booleans})) {
+	if( is_enabled($cfg->{Main}{convert_booleans}) ) {
 		
 		foreach my $sendtopic (keys %sendhash) {
 			if( is_enabled($sendhash{$sendtopic}) ) {
@@ -164,6 +181,15 @@ sub received
 			}
 		}
 	} 
+	
+	# User defined conversion
+	if ( %conversions ) {
+		foreach my $sendtopic (keys %sendhash) {
+			if( defined %conversions{ $sendhash{$sendtopic} } ) {
+				$sendhash{$sendtopic} = $conversions{ $sendhash{$sendtopic} };
+			}
+		}
+	}
 	
 	
 	if( is_enabled($cfg->{Main}{use_udp}) ) {
@@ -223,13 +249,11 @@ sub read_config
 		if(! defined $cfg->{Main}{brokeraddress}) { $cfg->{Main}{brokeraddress} = 'localhost'; }
 		if(! defined $cfg->{Main}{udpinport}) { $cfg->{Main}{udpinport} = 11883; }
 		
-
 		LOGDEB "JSON Dump:";
 		LOGDEB Dumper($cfg);
 
 		LOGINF "MSNR: " . $cfg->{Main}{msno};
 		LOGINF "UDPPort: " . $cfg->{Main}{udpport};
-		
 		
 		# Unsubscribe old topics
 		if($mqtt) {
@@ -264,6 +288,34 @@ sub read_config
 		if ($@) {
 			LOGERR "Exception catched on reconnecting and subscribing: $!";
 		}
+		
+		# Conversions
+		undef %conversions;
+		if ($cfg->{conversions}) {
+			LOGOK "Processing conversions";
+			foreach my $conversion (@{$cfg->{conversions}}) {
+				my ($text, $value) = split('=', $conversion, 2);
+				$text = trim($text);
+				$value = trim($value);
+				if($text eq "" or $value eq "") {
+					LOGWARN "Ignoring conversion setting: $conversion (a part seems to be empty)";
+					next;
+				}
+				if(!looks_like_number($value)) {
+					LOGWARN "Conversion entry: Convert '$text' to '$value' - Conversion is used, but '$value' seems not to be a number";
+				} else {
+					LOGINF "Conversion entry: Convert '$text' to '$value'";
+				}
+				if(defined $conversions{$text}) {
+					LOGWARN "Conversion entry: '$text=$value' overwrites '$text=$conversions{$text}' - You have a DUPLICATE";
+				}
+				$conversions{$text} = $value;
+			}
+		} else {
+			LOGOK "No conversions set";
+		}
+		
+		
 		
 		# Clean UDP socket
 		create_in_socket();
@@ -326,13 +378,7 @@ sub save_relayed_states
 		}
 	}
 	
-	
-	
 }
-
-
-
-
 
 
 END
