@@ -13,7 +13,7 @@
 </style>
 
 <TMPL_IF FORM_SETTINGS>
-<!-- Form SETTINGS -->
+	<!-- Form SETTINGS -->
 	<form id="form" onsubmit="return false;">
 
 	<div class="wide">MQTT to Miniserver</div>
@@ -89,11 +89,11 @@
 		<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
 	</div>
 	</form>
-<!-- /Form SETTINGS -->
+	<!-- /Form SETTINGS -->
 </TMPL_IF>
 
 <TMPL_IF FORM_SUBSCRIPTIONS>
-<!-- Form SUBSCRIPTIONS -->
+	<!-- Form SUBSCRIPTIONS -->
 	<form id="form" onsubmit="return false;">
 
 	<div class="wide">MQTT Subscriptions</div>
@@ -105,11 +105,11 @@
 	</div>
 	
 	</form>
-<!-- /Form SUBSCRIPTIONS -->
+	<!-- /Form SUBSCRIPTIONS -->
 </TMPL_IF>
 
 <TMPL_IF FORM_CONVERSIONS>
-<!-- Form CONVERSIONS -->
+	<!-- Form CONVERSIONS -->
 	<form id="form" onsubmit="return false;">
 
 	<div class="wide">Text-to-Value conversions</div>
@@ -121,13 +121,12 @@
 	</div>
 	</form>
 
-
-<!-- /Form CONVERSIONS -->
+	<!-- /Form CONVERSIONS -->
 </TMPL_IF>
 
 
 <TMPL_IF FORM_TOPICS>
-<!-- Form TOPICS -->
+	<!-- Form TOPICS -->
 	<style>
 	.topics_table {
 		/* font-family: "Trebuchet MS", Arial, Helvetica, sans-serif; */
@@ -155,7 +154,6 @@
 	}
 	</style>
 	
-	
 	<div class="wide">Last transmissions to Miniserver</div>
 	<p>This page lists the transmissions via the MQTT Gateway to the Miniserver in the last 24 hours. It is refreshed approximately every minute if you press browsers refresh button.<p>
 	<p>You can copy and paste the 'Virtual Input' names for HTTP transmissions, or create command recognitions from the UDP messages.</p>
@@ -169,6 +167,36 @@
 		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqttudp'>UDP Transmissions <span style='font-size:80%;'>(<TMPL_VAR udp_count> entries)</span></h2>
 		<TMPL_VAR udp_table>
 	</div>
+	<br>
+	
+	<!-- Donation -->
+	<div data-role='collapsible' id='coll_donate' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
+		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_donate'>Donate for test equipment</h2>
+		<TMPL_VAR donate>
+		<div style="margin:auto;text-align:center;">
+		<br>
+		<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+			<input type="hidden" name="cmd" value="_s-xclick" />
+			<input type="hidden" name="hosted_button_id" value="ENM638BVW9GYS" />
+			<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+			<img alt="" border="0" src="https://www.paypal.com/en_AT/i/scr/pixel.gif" width="1" height="1" />
+		</form>
+		</div>
+		<br>
+		<div style="display:flex;justify-content:center;align-content:space-around;">
+			<div style="padding: 10px 10px 10px 10px;">
+				<fieldset data-role="controlgroup">
+					<input type="checkbox" name="Main.donation_remove" id="Main.donation_remove">
+					<label for="Main.donation_remove"><TMPL_VAR donate_done_remove></label>
+				</fieldset>
+			</div>
+			<div style="padding: 10px 10px 10px 10px;">
+				<button class="ui-btn ui-btn-icon-right ui-corner-all" id="saveapply" data-inline="true">Save</button>
+			</div>
+		</div>
+		<!-- <button id="Main.remove_donate" data-mini="true"><TMPL_VAR donate_done_remove></button> -->
+	</div>
+	
 	
 	
 	<script>
@@ -176,6 +204,7 @@
 		restoreWindow();
 		$(".ui-collapsible").on("collapsiblecollapse", function(event, ui) {console.log("Collaps", $(this).attr('id'));storeWindow($(this).attr('id'), "collapse");});
 		$(".ui-collapsible").on("collapsibleexpand", function(event, ui) {console.log("Expand", $(this).attr('id'));storeWindow($(this).attr('id'), "expand");});
+		
 		});
 
 		function storeWindow (name, pos) 
@@ -197,21 +226,17 @@
 		}
 	</script>
 
-<!-- /Form TOPICS -->
+	<!-- /Form TOPICS -->
 </TMPL_IF>
 
 
 
 
 <TMPL_IF FORM_LOGS>
-<!-- Form LOGS -->
-<TMPL_VAR loglist_html>
-<!-- /Form LOGS -->
+	<!-- Form LOGS -->
+	<TMPL_VAR loglist_html>
+	<!-- /Form LOGS -->
 </TMPL_IF>
-
-
-
-
 
 <TMPL_UNLESS FORM_DISABLE_BUTTONS>
 
@@ -230,153 +255,158 @@
 	
 <TMPL_UNLESS FORM_DISABLE_JS>
 
-<script>
+	<script>
 
-var cfg;
+	var cfg;
 
 
-$(function() {
-	
-	setInterval(function(){ update_pids(); }, 5000);
-	update_pids();
-	
-	cfg = JSON.parse('<TMPL_VAR JSONCONFIG>');
-	console.log("Config", cfg, cfg.Main, cfg.subscriptions);
-	
-	// Elements in subscriptions
-	if( cfg.subscriptions ) 
-		$("#subscriptions").text( cfg.subscriptions.join("\n") );
-	
-	// Elements in conversions
-	if( cfg.conversions )
-		$("#conversions").text( cfg.conversions.join("\n") );
-	
-	// Elements in Main
-	for(var elemname in cfg.Main) {
-		var inputType = $("#Main\\."+elemname).attr('type');
-		console.log("Element", elemname, cfg.Main[elemname], inputType);
-		if(inputType == "checkbox" && cfg.Main[elemname] == 1) {
-			$("#Main\\."+elemname).prop('checked', true);
-		} else {
-			$("#Main\\."+elemname).val(cfg.Main[elemname]);
-		}
-	}
-	$('select').selectmenu('refresh', true);
-	$('input:checkbox').checkboxradio('refresh');
-	
-});
-
-$('input, textarea, select').change(function(event) {
-	$("#savemessages").attr("style", "color:blue").html("Unsaved changes |");
-
-	var id = $(this).attr('id');
-	var inputType = $(this).attr('type');
-	console.log(id, inputType, event);
+	$(function() {
 		
-	if (id == "subscriptions") {
-		console.log("subscritions content",  $("#"+id).val());
-		cfg.subscriptions = $.trim($("#"+id).val()).split("\n");
-		console.log("Subscriptions Array", cfg.subscriptions);
-	} 
-	else if (id == "conversions") {
-		console.log("conversions content",  $("#"+id).val());
-		cfg.conversions = $.trim($("#"+id).val()).split("\n");
-		console.log("Conversions Array", cfg.conversions);
-	} 
-	else if (id.startsWith("Main.")) {
-		var idarray = id.split(".");
-		if(inputType === "checkbox") {
-			cfg.Main[idarray[1]] = $(this).is(":checked");
-		} else {
-			// console.log(idarray[0], idarray[1], $("#Main\\."+idarray[1]).val());
+		setInterval(function(){ update_pids(); }, 5000);
+		update_pids();
 		
-			cfg.Main[idarray[1]] = $(this).val();
+		cfg = JSON.parse('<TMPL_VAR JSONCONFIG>');
+		console.log("Config", cfg, cfg.Main, cfg.subscriptions);
+		
+		// Hide donation
+		if( cfg.Main.donation_remove === true )
+			$("#coll_donate").hide();
+		
+		
+		// Elements in subscriptions
+		if( cfg.subscriptions ) 
+			$("#subscriptions").text( cfg.subscriptions.join("\n") );
+		
+		// Elements in conversions
+		if( cfg.conversions )
+			$("#conversions").text( cfg.conversions.join("\n") );
+		
+		// Elements in Main
+		for(var elemname in cfg.Main) {
+			var inputType = $("#Main\\."+elemname).attr('type');
+			console.log("Element", elemname, cfg.Main[elemname], inputType);
+			if(inputType == "checkbox" && cfg.Main[elemname] == 1) {
+				$("#Main\\."+elemname).prop('checked', true);
+			} else {
+				$("#Main\\."+elemname).val(cfg.Main[elemname]);
+			}
 		}
-	}
-
-
-
-});
-
-
-$("#saveapply").click(function(){
-
-	// var data = $('form').serialize() + "&save=true";
-	console.log("Submitting form", cfg);
-	$("#saveapply").attr("disabled", true);
-	$.ajax( { 
-			type: 'POST',
-			url: 'ajax.cgi', 
-			dataType: 'json',
-			contentType: 'text/plain; charset=UTF-8',
-			data: JSON.stringify(cfg)
-		} )
-	.done(function() {
-		console.log( "Success" );
-		$("#savemessages").attr("style", "color:green").html("Saved successfully |");
-	})
-	.fail(function() {
-		console.log( "Error" );
-		$("#savemessages").attr("style", "color:red").html("Error saving |");
-	})
-	.always(function() {
-		console.log( "Finished" );
-		$("#saveapply").attr("disabled", false);
-	
+		$('select').selectmenu('refresh', true);
+		$('input:checkbox').checkboxradio('refresh');
+		
 	});
-	
-});
 
-$("#restartmqttgateway").click(function(){
-	console.log("Restart pressed");
-	$("#restartmqttgateway").attr("disabled", true);
-	$.post( 'index.cgi', {
-		ajax: 'restartgateway' })
-	.done(function(resp) {
-		console.log( "ajax_post", "success", resp );
-  })
-  .fail(function(resp) {
-		console.log( "ajax_post", "failed", resp );
-  })
-  .always(function(resp) {
-		console.log( "ajax_post", "finished", resp );
-	$("#restartmqttgateway").attr("disabled", false);
-	update_pids();
-		
-  });
-});
+	$('input, textarea, select').change(function(event) {
+		$("#savemessages").attr("style", "color:blue").html("Unsaved changes |");
 
-function update_pids() 
-{
-
-	$.post( 'index.cgi', {
-		ajax: 'getpids' })
-	.done(function(resp) {
-		// console.log( "ajax_post", "success", resp );
-		if(resp.pids.mqttgateway != null) {
-			$("#gatewaystate").attr("style", "color:green").html("MQTT Gateway running (PID"+resp.pids.mqttgateway+")");
-		} else {
-			$("#gatewaystate").attr("style", "color:red").html("MQTT Gateway not running");
+		var id = $(this).attr('id');
+		var inputType = $(this).attr('type');
+		console.log(id, inputType, event);
+			
+		if (id == "subscriptions") {
+			console.log("subscritions content",  $("#"+id).val());
+			cfg.subscriptions = $.trim($("#"+id).val()).split("\n");
+			console.log("Subscriptions Array", cfg.subscriptions);
+		} 
+		else if (id == "conversions") {
+			console.log("conversions content",  $("#"+id).val());
+			cfg.conversions = $.trim($("#"+id).val()).split("\n");
+			console.log("Conversions Array", cfg.conversions);
+		} 
+		else if (id.startsWith("Main.")) {
+			var idarray = id.split(".");
+			if(inputType === "checkbox") {
+				cfg.Main[idarray[1]] = $(this).is(":checked");
+			} else {
+				// console.log(idarray[0], idarray[1], $("#Main\\."+idarray[1]).val());
+			
+				cfg.Main[idarray[1]] = $(this).val();
+			}
 		}
-		if(resp.pids.mosquitto != null) {
-			$("#mosquittostate").attr("style", "color:green").html("Mosquitto running (PID"+resp.pids.mosquitto+")");
-		} else {
-			$("#mosquittostate").attr("style", "color:red").html("Mosquitto not running");
-		}
-		
-  })
-  .fail(function(resp) {
-		$("#gatewaystate").attr("style", "color:red").html("Failed to query PIDs");
-		$("#mosquittostate").attr("style", "color:red").html("Failed to query PIDs");
-		
-  })
-  .always(function(resp) {
-		// console.log( "ajax_post", "finished", resp );
+
+
 
 	});
-}
 
 
-</script>
+	$("#saveapply").click(function(){
+
+		// var data = $('form').serialize() + "&save=true";
+		console.log("Submitting form", cfg);
+		$("#saveapply").attr("disabled", true);
+		$.ajax( { 
+				type: 'POST',
+				url: 'ajax.cgi', 
+				dataType: 'json',
+				contentType: 'text/plain; charset=UTF-8',
+				data: JSON.stringify(cfg)
+			} )
+		.done(function() {
+			console.log( "Success" );
+			$("#savemessages").attr("style", "color:green").html("Saved successfully |");
+		})
+		.fail(function() {
+			console.log( "Error" );
+			$("#savemessages").attr("style", "color:red").html("Error saving |");
+		})
+		.always(function() {
+			console.log( "Finished" );
+			$("#saveapply").attr("disabled", false);
+		
+		});
+		
+	});
+
+	$("#restartmqttgateway").click(function(){
+		console.log("Restart pressed");
+		$("#restartmqttgateway").attr("disabled", true);
+		$.post( 'index.cgi', {
+			ajax: 'restartgateway' })
+		.done(function(resp) {
+			console.log( "ajax_post", "success", resp );
+	  })
+	  .fail(function(resp) {
+			console.log( "ajax_post", "failed", resp );
+	  })
+	  .always(function(resp) {
+			console.log( "ajax_post", "finished", resp );
+		$("#restartmqttgateway").attr("disabled", false);
+		update_pids();
+			
+	  });
+	});
+
+	function update_pids() 
+	{
+
+		$.post( 'index.cgi', {
+			ajax: 'getpids' })
+		.done(function(resp) {
+			// console.log( "ajax_post", "success", resp );
+			if(resp.pids.mqttgateway != null) {
+				$("#gatewaystate").attr("style", "color:green").html("MQTT Gateway running (PID"+resp.pids.mqttgateway+")");
+			} else {
+				$("#gatewaystate").attr("style", "color:red").html("MQTT Gateway not running");
+			}
+			if(resp.pids.mosquitto != null) {
+				$("#mosquittostate").attr("style", "color:green").html("Mosquitto running (PID"+resp.pids.mosquitto+")");
+			} else {
+				$("#mosquittostate").attr("style", "color:red").html("Mosquitto not running");
+			}
+			
+	  })
+	  .fail(function(resp) {
+			$("#gatewaystate").attr("style", "color:red").html("Failed to query PIDs");
+			$("#mosquittostate").attr("style", "color:red").html("Failed to query PIDs");
+			
+	  })
+	  .always(function(resp) {
+			// console.log( "ajax_post", "finished", resp );
+
+		});
+	}
+
+
+	</script>
 
 </TMPL_UNLESS>

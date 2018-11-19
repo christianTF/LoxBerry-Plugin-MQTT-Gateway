@@ -81,7 +81,7 @@ if( $q->{ajax} ) {
 		$navbar{40}{active} = 1;
 		$template->param("FORM_TOPICS", 1);
 		$template->param("FORM_DISABLE_BUTTONS", 1);
-		$template->param("FORM_DISABLE_JS", 1);
+		# $template->param("FORM_DISABLE_JS", 1);
 		topics_form();
 	}
 	elsif ( $q->{form} eq "logs" ) {
@@ -221,6 +221,14 @@ sub topics_form
 	
 	$template->param("udp_table", $udp_table);
 	$template->param("udp_count", $udp_count);
+	
+	# Donate
+	my $donate = "Not many words to say... As I am currently testing with my \"production\" house, I am collecting for a Test-Miniserver. Also, I'm buying (not <i>really</i> needed) hardware devices (e.g. Shelly's) to test it with LoxBerry and plugins. As I'm spending my time, hopefully you support my expenses for my test environment.";
+	my $donate_done_remove = "Done! Remove this!";
+	$template->param("donate", $donate);
+	$template->param("donate_done_remove", $donate_done_remove);
+
+
 	
 	
 }
