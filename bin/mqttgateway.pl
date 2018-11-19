@@ -48,6 +48,7 @@ my %conversions;
 # Hash to store all submitted topics
 my %relayed_topics_udp;
 my %relayed_topics_http;
+my %health_state;
 my $nextrelayedstatepoll = 0;
 
 # UDP
@@ -61,7 +62,14 @@ print "Configfile: $cfgfile\n";
 while (! -e $cfgfile) {
 	print "ERROR: Cannot find config file $cfgfile";
 	sleep(5);
+	$health_state{configfile}{message} = "Cannot find config file";
+	$health_state{configfile}{error} = 1;
+	$health_state{configfile}{count} += 1;
 }
+
+$health_state{configfile}{message} = "Configfile present";
+$health_state{configfile}{error} = 0;
+$health_state{configfile}{count} = 0;
 
 my $log = LoxBerry::Log->new (
     name => 'MQTT Gateway',
@@ -88,7 +96,16 @@ create_in_socket();
 # Capture messages
 while(1) {
 	if(time>$nextconfigpoll) {
-		LOGWARN "No connection to MQTT broker $cfg->{Main}{brokeraddress} - Check host/port/user/pass and your connection." if(!$mqtt->{socket});
+		if(!$mqtt->{socket}) {
+			LOGWARN "No connection to MQTT broker $cfg->{Main}{brokeraddress} - Check host/port/user/pass and your connection.";
+			$health_state{broker}{message} = "No connection to MQTT broker $cfg->{Main}{brokeraddress} - Check host/port/user/pass and your connection.";
+			$health_state{broker}{error} = 1;
+			$health_state{broker}{count} += 1;
+		} else {
+			$health_state{broker}{message} = "Connected and subscribed to broker";
+			$health_state{broker}{error} = 0;
+			$health_state{broker}{count} = 0;
+		}
 		
 		read_config();
 		if(!$udpinsock) {
@@ -161,7 +178,12 @@ sub received
 					#LOGDEB "  It is $record: $val";
 				}
 			};
-			if($@) { LOGERR "Error $!";}
+			if($@) { 
+				LOGERR "Error on JSON expansion: $!";
+				$health_state{jsonexpansion}{message} = "There were errors expanding incoming JSON.";
+				$health_state{jsonexpansion}{error} = 1;
+				$health_state{jsonexpansion}{count} += 1;
+			} 
 		}
 	}
 	else {
@@ -187,7 +209,7 @@ sub received
 	# User defined conversion
 	if ( %conversions ) {
 		foreach my $sendtopic (keys %sendhash) {
-			if( defined %conversions{ $sendhash{$sendtopic} } ) {
+			if( defined $conversions{ $sendhash{$sendtopic} } ) {
 				$sendhash{$sendtopic} = $conversions{ $sendhash{$sendtopic} };
 			}
 		}
@@ -202,7 +224,12 @@ sub received
 				$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
 				LOGDEB "  UDP: Sending as $sendtopic to MS No. " . $cfg->{Main}{msno};
 			}	
-			LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash);
+			my $udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash);
+			if (!$udpresp) {
+				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver.";
+				$health_state{udpsend}{error} = 1;
+				$health_state{udpsend}{count} += 1;
+			}
 		}
 	}
 	if( is_enabled($cfg->{Main}{use_http}) and $miniservers{$cfg->{Main}{msno}} ) {
@@ -218,7 +245,22 @@ sub received
 		}
 		#LOGDEB "  HTTP: Sending as $topic to MS No. " . $cfg->{Main}{msno};
 		#LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
-		LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash);
+		my $httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash);
+		# if (!$httpresp) {
+			# LOGDEB "  HTTP: Virtual input not available?";
+		# } elsif ($httpresp eq "1") {
+			# LOGDEB "  HTTP: Values are equal to cache";
+		# } else {
+			# foreach my $sendtopic (keys %$httpresp) {
+				# if (!$httpresp->{$sendtopic}) {
+					# LOGDEB "  Virtual Input $sendtopic failed to send - Virtual Input not available?";
+					# $relayed_topics_http{$sendtopic}{error} = 1;
+					# $health_state{httpsend}{message} = "There were errors sending values via HTTP to the Miniserver";
+					# $health_state{jsonexpansion}{error} = 1;
+					# $health_state{jsonexpansion}{count} += 1;
+				# }
+			# }
+		# }
 	}
 }
 
@@ -242,6 +284,9 @@ sub read_config
 
 	if(!$cfg) {
 		LOGERR "Could not read json configuration. Possibly not a valid json?";
+		$health_state{configfile}{message} = "Could not read json configuration. Possibly not a valid json?";
+		$health_state{configfile}{error} = 1;
+		$health_state{configfile}{count} += 1;
 		return;
 	} else {
 
@@ -289,6 +334,14 @@ sub read_config
 		};
 		if ($@) {
 			LOGERR "Exception catched on reconnecting and subscribing: $!";
+			$health_state{broker}{message} = "Exception catched on reconnecting and subscribing: $!";
+			$health_state{broker}{error} = 1;
+			$health_state{broker}{count} += 1;
+			
+		} else {
+			$health_state{broker}{message} = "Connected and subscribed successfully";
+			$health_state{broker}{error} = 0;
+			$health_state{broker}{count} = 0;
 		}
 		
 		# Conversions
@@ -317,8 +370,6 @@ sub read_config
 			LOGOK "No conversions set";
 		}
 		
-		
-		
 		# Clean UDP socket
 		create_in_socket();
 	
@@ -339,11 +390,20 @@ sub create_in_socket
 		LocalPort => $cfg->{Main}{udpinport}, 
 		# MultiHomed => 1,
 		#Blocking => 0,
-		Proto => 'udp') or LOGERR "Could not create UDP IN socket: $@";
+		Proto => 'udp') or 
+	do {
+		LOGERR "Could not create UDP IN socket: $@";
+		$health_state{udpinsocket}{message} = "Could not create UDP IN socket: $@";
+		$health_state{udpinsocket}{error} = 1;
+		$health_state{udpinsocket}{count} += 1;
+	};	
 		
 	if($udpinsock) {
 		IO::Handle::blocking($udpinsock, 0);
 		LOGOK "UDP-IN listening on port " . $cfg->{Main}{udpinport};
+		$health_state{udpinsocket}{message} = "UDP-IN socket connected";
+		$health_state{udpinsocket}{error} = 0;
+		$health_state{udpinsocket}{count} = 0;
 	}
 }
 
@@ -361,7 +421,7 @@ sub save_relayed_states
 
 	$relayjson->{udp} = \%relayed_topics_udp;
 	$relayjson->{http} = \%relayed_topics_http;
-	
+	$relayjson->{health_state} = \%health_state;
 	$relayjsonobj->write();
 	undef $relayjsonobj;
 

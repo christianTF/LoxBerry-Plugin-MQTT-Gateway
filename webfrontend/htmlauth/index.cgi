@@ -179,12 +179,15 @@ sub topics_form
 	
 	# HTTP
 	my $http_table, $http_count = 0;
-	$http_table .= qq { <table class="topics_table"> };
+	$http_table .= qq { <table class="topics_table" id="http_table" data-filter="true"> };
+	$http_table .= qq { <thead> };
 	$http_table .= qq { <tr> };
 	$http_table .= qq { <th>Miniserver Virtual Input</th> };
 	$http_table .= qq { <th>Last value</th> };
 	$http_table .= qq { <th>Last submission</th> };
 	$http_table .= qq { </tr> };
+	$http_table .= qq { </thead> };
+	$http_table .= qq { <tbody> };
 	
 	foreach my $topic (sort keys %{$relayjson->{http}}) {
 		$http_count++;
@@ -194,6 +197,7 @@ sub topics_form
 		$http_table .= qq { <td> } . POSIX::strftime('%d.%m.%Y %H:%M:%S', localtime($relayjson->{http}{$topic}{timestamp})) . qq { </td> };
 		$http_table .= qq { </tr> };
 	}
+	$http_table .= qq { </tbody> };
 	$http_table .= qq { </table> };
 	
 	$template->param("http_table", $http_table);
@@ -202,12 +206,15 @@ sub topics_form
 	
 	# UDP
 	my $udp_table, $udp_count = 0;
-	$udp_table .= qq { <table class="topics_table"> };
+	$udp_table .= qq { <table class="topics_table" id="udp_table" data-filter="true"> };
+	$udp_table .= qq { <thead> };
 	$udp_table .= qq { <tr> };
 	$udp_table .= qq { <th>Miniserver UDP</th> };
 	#$udp_table .= qq { <th>Last value</th> };
 	$udp_table .= qq { <th>Last submission</th> };
 	$udp_table .= qq { </tr> };
+	$udp_table .= qq { </thead> };
+	$udp_table .= qq { <tbody> };
 	
 	foreach my $topic (sort keys %{$relayjson->{udp}}) {
 		$udp_count++;
@@ -217,6 +224,7 @@ sub topics_form
 		$udp_table .= qq { <td> } . POSIX::strftime('%d.%m.%Y %H:%M:%S', localtime($relayjson->{udp}{$topic}{timestamp})) . qq { </td> };
 		$udp_table .= qq { </tr> };
 	}
+	$udp_table .= qq { </tbody> };
 	$udp_table .= qq { </table> };
 	
 	$template->param("udp_table", $udp_table);
