@@ -102,13 +102,16 @@
 		<div data-role="fieldcontain">
 			<label for="Credentials.brokeruser">MQTT Broker username</label>
 			<input name="Credentials.brokeruser" id="Credentials.brokeruser" type="text" />
-			<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+			<p class="hint">Default is <span class="mono">loxberry</span> for the local Mosquitto installation. <i>Emptying user and password will disable authentication.</i></p>
 		</div>
 
 		<div data-role="fieldcontain">
 			<label for="Credentials.brokerpass">MQTT Broker password</label>
 			<input name="Credentials.brokerpass" id="Credentials.brokerpass" type="text" />
-			<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+			<!-- <p class="hint">Use a safe password! <b>Double</b>click the dice to generate a new password: <img ondblclick="pwRandomize()" src="images/dice_30_30.png"></p> -->
+			<p class="hint">Use a safe password! Click the dice to open a funny password generator: <a href="https://www.dinopass.com/" target="_blank"><img src="images/dice_30_30.png" alt="Dice"></a></p>
+			
+			
 		</div>
 	
 	</div>
@@ -529,7 +532,14 @@
 		});
 	}
 
-
+	function pwRandomize()
+	{
+		// to implement
+		
+	
+	}
+	
+	
 	</script>
 
 </TMPL_UNLESS>

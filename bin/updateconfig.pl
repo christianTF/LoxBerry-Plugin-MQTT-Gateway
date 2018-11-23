@@ -133,7 +133,7 @@ sub update_config
 		
 		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=loxberry brokerpass=$Credentials{brokerpass} enable_mosquitto=$cfg->{Main}{enable_mosquitto}`;
 		
-		
+		`sudo $lbpbindir/sudo/mosq_readconfig.sh`; 
 	}
 	
 	$json->write();
