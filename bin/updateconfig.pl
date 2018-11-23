@@ -131,9 +131,11 @@ sub update_config
 		$cred->{Credentials} = \%Credentials;
 		$credobj->write();
 		
-		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=loxberry brokerpass=$Credentials{brokerpass} enable_mosquitto=$cfg->{Main}{enable_mosquitto}`;
+		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} enable_mosquitto=$cfg->{Main}{enable_mosquitto}`;
 		
 		`sudo $lbpbindir/sudo/mosq_readconfig.sh`; 
+		LOGWARN "New Mosquitto configuration was created with a generated password.";
+		LOGWARN "Check the plugin settings to see and change your new credentials.";
 	}
 	
 	$json->write();
@@ -156,13 +158,13 @@ sub update_config
 # Random Sub
 #####################################################
 sub generate {
-        my $e = @_;
+        my ($count) = @_;
         my($zufall,@words,$more);
 
-        if($e =~ /^\d+$/){
-                $more = $e;
+        if($count =~ /^\d+$/){
+                $more = $count;
         }else{
-                $more = "10";
+                $more = 10;
         }
 
         @words = qw(A B C D E F G H I J K L M N O P Q R S T U V W X Y Z a b c d e f g h i j k l m n o p q r s t u v w x y z 0 1 2 3 4 5 6 7 8 9);
