@@ -95,7 +95,7 @@ sub write
 		return;		
 	}
 	
-	print STDERR "No jsonobj\n" if (!$self->{jsonobj});
+	print STDERR "No jsonobj\n" if (! defined $self->{jsonobj});
 	
 	my $jsoncontent_new;
 	eval {

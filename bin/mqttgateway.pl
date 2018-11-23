@@ -33,8 +33,11 @@ $SIG{TERM} = sub {
 #require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
+my $credfile = "$lbpconfigdir/cred.json";
 my $json;
+my $json_cred;
 my $cfg;
+my $cfg_cred;
 my $cfg_timestamp;
 my $nextconfigpoll;
 my $mqtt;
@@ -112,8 +115,9 @@ while(1) {
 			create_in_socket();
 		}
 	}
-	
-	$mqtt->tick();
+	eval {
+		$mqtt->tick();
+	};
 	
 	# UDP Receive data from UDP socket
 	eval {
@@ -267,7 +271,6 @@ sub received
 sub read_config
 {
 	$nextconfigpoll = time+5;
-	
 	my $mtime = (stat($cfgfile))[9];
 	if(defined $cfg_timestamp and $cfg_timestamp == $mtime and defined $cfg) {
 		return;
@@ -275,21 +278,31 @@ sub read_config
 	
 	$cfg_timestamp = $mtime;
 	
-	
 	LOGOK "Reading config changes";
 	# $LoxBerry::JSON::JSONIO::DEBUG = 1;
 
+	# Config file
 	$json = LoxBerry::JSON::JSONIO->new();
 	$cfg = $json->open(filename => $cfgfile, readonly => 1);
-
+	# Credentials file
+	$json_cred = LoxBerry::JSON::JSONIO->new();
+	$cfg_cred = $json->open(filename => $credfile, readonly => 1);
+	
 	if(!$cfg) {
 		LOGERR "Could not read json configuration. Possibly not a valid json?";
 		$health_state{configfile}{message} = "Could not read json configuration. Possibly not a valid json?";
 		$health_state{configfile}{error} = 1;
 		$health_state{configfile}{count} += 1;
 		return;
-	} else {
+	} elsif (!$cfg_cred) {
+		LOGERR "Could not read credentials json configuration. Possibly not a valid json?";
+		$health_state{configfile}{message} = "Could not read credentials json configuration. Possibly not a valid json?";
+		$health_state{configfile}{error} = 1;
+		$health_state{configfile}{count} += 1;
+		return;
 
+	} else {
+	
 	# Setting default values
 		if(! defined $cfg->{Main}{msno}) { $cfg->{Main}{msno} = 1; }
 		if(! defined $cfg->{Main}{udpport}) { $cfg->{Main}{udpport} = 11883; }
@@ -321,7 +334,7 @@ sub read_config
 		LOGINF "Connecting broker $cfg->{Main}{brokeraddress}";
 		eval {
 			#$mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
-			$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, $cfg->{Main}{brokeruser}, $cfg->{Main}{brokerpass});
+			$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, $cfg_cred->{Credentials}{brokeruser}, $cfg_cred->{Credentials}{brokerpass});
 			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, "loxberry", "loxberry");
 			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress});
 			

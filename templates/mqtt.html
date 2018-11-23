@@ -77,16 +77,39 @@
 		<p class="hint">Default is <span class="mono">localhost</span> for the local Mosquitto installation. Experienced users may use a remote MQTT broker.</p>
 	</div>
 
-	<div data-role="fieldcontain">
-		<label for="Main.brokeruser">MQTT Broker username</label>
-		<input name="Main.brokeruser" id="Main.brokeruser" type="text" />
-		<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+	<div id="securepin_block" style="background-color:lightyellow;">
+		<div style="display:flex;justify-content:center;align-content:space-around;">
+		<!-- <div id="securepin_block"> -->
+			<div style="flex-grow:3; padding: 5px 5px 5px 5px;">
+				<!-- <div class="ui-field-contain"> -->
+					<label for="securepin" style="color:red;">To show your broker credentials, enter your LoxBerry SecurePIN</label>
+				<!-- </div> -->
+			</div>
+			<div style="flex-grow:1;padding: 5px 5px 5px 5px;">
+				<input name="securepin" id="securepin" type="text">
+			</div>
+			<div style="flex-grow:1; padding: 5px 5px 5px 5px;">
+				<button class="ui-btn ui-btn-icon-right ui-corner-all" id="check_securepin" data-inline="true">Check PIN</button>
+			</div>
+		</div>
+		<div class="hint" id="check_hint" style="display:flex; flex-flow:wrap; padding: 5px 5px 5px 5px;">If a cyber attacker could find out your LoxBerry web password, this is an additional 2-phase protection to not spy credentials of your MQTT broker.<br><b>After pressing Check PIN, the password <i>directly</i> is shown (not hidden by ***).</b></div>
+		</div>
 	</div>
+	
+	<div id="credentials_block" style="display:none">
+		
+		<div data-role="fieldcontain">
+			<label for="Credentials.brokeruser">MQTT Broker username</label>
+			<input name="Credentials.brokeruser" id="Credentials.brokeruser" type="text" />
+			<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+		</div>
 
-	<div data-role="fieldcontain">
-		<label for="Main.brokerpass">MQTT Broker password</label>
-		<input name="Main.brokerpass" id="Main.brokerpass" type="text" />
-		<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+		<div data-role="fieldcontain">
+			<label for="Credentials.brokerpass">MQTT Broker password</label>
+			<input name="Credentials.brokerpass" id="Credentials.brokerpass" type="text" />
+			<p class="hint">Default is empty (no authentication) for the local Mosquitto installation.</p>
+		</div>
+	
 	</div>
 	</form>
 	<!-- /Form SETTINGS -->
@@ -220,6 +243,7 @@
 				console.log($(value).attr('id'), pos);	}
 			);
 		}
+		
 	</script>
 
 	<!-- /Form TOPICS -->
@@ -242,6 +266,7 @@
 	</div>
 	<div style="display:flex;align-items:center;justify-content:center;">
 		<span id="savemessages"></span>&nbsp;
+		<span id="savebrokerpass"></span>&nbsp;
 		&nbsp;<span id="gatewaystate"></span>&nbsp;| 
 		&nbsp;<span id="mosquittostate"></span>
 	</div>
@@ -254,13 +279,16 @@
 	<script>
 
 	var cfg;
-
+	var creds = { };
+	var creds_changed = false;
+	
 
 	$(function() {
 		
 		setInterval(function(){ update_pids(); }, 5000);
 		update_pids();
 		
+		// Parse config
 		cfg = JSON.parse('<TMPL_VAR JSONCONFIG>');
 		console.log("Config", cfg, cfg.Main, cfg.subscriptions);
 		
@@ -289,6 +317,13 @@
 		}
 		$('select').selectmenu('refresh', true);
 		$('input:checkbox').checkboxradio('refresh');
+		
+		// Set SecurePIN from session storage
+		$('#securepin').val(sessionStorage.getItem("securePIN"));
+		if( $('#securepin').val() ) {
+			$('#check_securepin').trigger("click");
+		}
+		
 		
 	});
 
@@ -319,9 +354,13 @@
 				cfg.Main[idarray[1]] = $(this).val();
 			}
 		}
-
-
-
+		else if (id.startsWith("Credentials.")) {
+			creds_changed = true;
+			var idarray = id.split(".");
+			if (!creds.Credentials) 
+				creds.Credentials = [];
+			creds.Credentials[idarray[1]] = $(this).val();
+		}
 	});
 
 
@@ -332,7 +371,7 @@
 		$("#saveapply").attr("disabled", true);
 		$.ajax( { 
 				type: 'POST',
-				url: 'ajax.cgi', 
+				url: 'ajax_savejson.cgi', 
 				dataType: 'json',
 				contentType: 'text/plain; charset=UTF-8',
 				data: JSON.stringify(cfg)
@@ -350,7 +389,37 @@
 			$("#saveapply").attr("disabled", false);
 		
 		});
+		if(creds_changed == true) {
+			// Also save new credentials
+			$.ajax( { 
+					type: 'POST',
+					url: 'ajax_brokercred.cgi', 
+					//dataType: 'json',
+					//contentType: 'text/plain; charset=UTF-8',
+					data: { action: 'setcred', 
+							secpin: $('#securepin').val(),
+							brokeruser: creds.Credentials.brokeruser,
+							brokerpass: creds.Credentials.brokerpass}
+				} )
+			.fail(function( data ) {
+				console.log( "Error saving credentials" );
+				$("#savebrokerpass").attr("style", "color:red").html("Error saving credentials |");
+			})
+			.done(function( data ) {
+				
+				if( data.error != 0 ) {
+					$("#savebrokerpass").attr("style", "color:red").html(data.message);
+					return;
+				}
+				$("#savebrokerpass").attr("style", "color:green").html("Credentials saved successfully |");
+			})
+			
+			.always(function( data ) {
+				console.log( "Credentials finished" );
+			
+			});
 		
+		}
 	});
 
 	$("#restartmqttgateway").click(function(){
@@ -372,6 +441,60 @@
 	  });
 	});
 
+	$("#check_securepin").click(function(){
+
+		// var data = $('form').serialize() + "&save=true";
+		console.log("Checking secure pin");
+		$("#check_securepin").attr("disabled", true);
+		$("#check_hint").attr("style", "color:blue;").html("One second...");
+		$.ajax( { 
+				type: 'POST',
+				url: 'ajax_brokercred.cgi', 
+				//dataType: 'json',
+				//contentType: 'text/plain; charset=UTF-8',
+				data: { action: 'getcred', secpin: $('#securepin').val() }
+			} )
+		.fail(function( data ) {
+			console.log( "Error" );
+			$("#check_hint").attr("style", "color:red").html("Error checking your SecurePIN.");
+		})
+		.done(function( data ) {
+			console.log( "getcred Success" );
+			// $("#savemessages").attr("style", "color:green").html("Saved successfully |");
+			
+			if( data.error != 0 ) {
+				$("#check_hint").attr("style", "color:red").html(data.message);
+				return;
+			}
+			$("#check_hint").attr("style", "color:green").html(data.message);
+			// Save PIN to session storage
+			sessionStorage.setItem("securePIN", $('#securepin').val());
+			$("#securepin_block").fadeOut();
+			//console.log("CredData", data);
+			//console.log("user", data.Credentials.brokeruser);
+			if(data.Credentials) {
+				creds.Credentials = data.Credentials;
+				if(data.Credentials.brokeruser) 
+					$("#Credentials\\.brokeruser").val(data.Credentials.brokeruser);
+				if(data.Credentials.brokerpass)
+					$("#Credentials\\.brokerpass").val(data.Credentials.brokerpass);
+			}
+			$("#credentials_block").fadeIn();
+			
+		})
+		
+		.always(function( data ) {
+			console.log( "Finished" );
+			$("#check_securepin").attr("disabled", false);
+		
+		});
+		
+	});
+
+	
+	
+	
+	
 	function update_pids() 
 	{
 
