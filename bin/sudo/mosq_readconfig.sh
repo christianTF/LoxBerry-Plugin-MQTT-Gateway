@@ -1,2 +1,2 @@
 #!/bin/bash
-pkill -HUB mosquitto
+pkill -HUP mosquitto
