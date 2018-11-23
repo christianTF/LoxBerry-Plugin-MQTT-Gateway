@@ -67,7 +67,7 @@ echo "<INFO> Remove temporary folders"
 rm -f -r /tmp/$PTEMPDIR\_upgrade
 
 echo "<INFO> Updating configuration"
-perl $PBIN/updateconfig.pl
+sudo $PBIN/updateconfig.pl
 
 echo "<INFO> Starting MQTT Gateway service"
 cd $PBIN

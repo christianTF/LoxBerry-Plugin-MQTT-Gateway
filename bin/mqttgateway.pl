@@ -39,6 +39,8 @@ my $json_cred;
 my $cfg;
 my $cfg_cred;
 my $cfg_timestamp;
+my $cfg_cred_timestamp;
+
 my $nextconfigpoll;
 my $mqtt;
 
@@ -146,7 +148,7 @@ while(1) {
 		save_relayed_states();
 	}
 	
-	Time::HiRes::sleep(0.05);
+	Time::HiRes::sleep($cfg->{Main}{pollms}/1000);
 }
 
 
@@ -270,13 +272,28 @@ sub received
 
 sub read_config
 {
+	my $configs_changed = 1;
 	$nextconfigpoll = time+5;
-	my $mtime = (stat($cfgfile))[9];
+	my $mtime;
+	
+	# Check cfg timestamp
+	$mtime = (stat($cfgfile))[9];
 	if(defined $cfg_timestamp and $cfg_timestamp == $mtime and defined $cfg) {
+		$configs_changed = 0;
+	}
+	$cfg_timestamp = $mtime;
+	
+	# Check cred timestamp
+	$mtime = (stat($credfile))[9];
+	if(defined $cfg_cred_timestamp and $cfg_cred_timestamp == $mtime and defined $cfg_cred) {
+		$configs_changed = 0;
+	}
+	$cfg_cred_timestamp = $mtime;
+
+	if($configs_changed == 0) {
 		return;
 	}
-	
-	$cfg_timestamp = $mtime;
+
 	
 	LOGOK "Reading config changes";
 	# $LoxBerry::JSON::JSONIO::DEBUG = 1;
@@ -308,6 +325,9 @@ sub read_config
 		if(! defined $cfg->{Main}{udpport}) { $cfg->{Main}{udpport} = 11883; }
 		if(! defined $cfg->{Main}{brokeraddress}) { $cfg->{Main}{brokeraddress} = 'localhost'; }
 		if(! defined $cfg->{Main}{udpinport}) { $cfg->{Main}{udpinport} = 11883; }
+		if(! defined $cfg->{Main}{pollms}) { $cfg->{Main}{pollms} = 50; }
+		
+		
 		
 		LOGDEB "JSON Dump:";
 		LOGDEB Dumper($cfg);

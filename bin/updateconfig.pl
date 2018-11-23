@@ -12,6 +12,8 @@ use LoxBerry::JSON::JSONIO;
 use Data::Dumper;
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
+my $credfile = "$lbpconfigdir/cred.json";
+
 my $json;
 my $cfg;
 my $cfg_timestamp;
@@ -40,7 +42,9 @@ if(!$cfg) {
 	return;
 }
 
+# Function to read parameters from shell scripts
 if($q->{section} and $q->{param}) {
+	LOGTITLE "Query value from shell";
 	my $val = $cfg->{$q->{section}}{$q->{param}};
 	print $val;
 	if ( $val =~ /^[0-9,.E]+$/ ) { 
@@ -53,7 +57,6 @@ if($q->{section} and $q->{param}) {
 }
 
 update_config();
-LOGEND "Config updated";
 
 sub update_config
 {
@@ -95,7 +98,47 @@ sub update_config
 		$changed++;
 		}
 	
+	if(! defined $cfg->{Main}{pollms}) { 
+		$cfg->{Main}{pollms} = 50; 
+		LOGINF "Setting poll time for MQTT and UDP connection to " . $cfg->{Main}{pollms} . " milliseconds";
+		$changed++;
+		}
+	
+	# Migrate credentials from mqtt.json to cred.json
+	if(defined $cfg->{Main}{brokeruser} or defined $cfg->{Main}{brokerpass}) {
+		unlink $credfile;
+		my $credobj = LoxBerry::JSON::JSONIO->new();
+		my $cred = $credobj->open(filename => $credfile);
+		my %Credentials;
+		$Credentials{brokeruser} = $cfg->{Main}{brokeruser};
+		$Credentials{brokerpass} = $cfg->{Main}{brokerpass};
+		$cred->{Credentials} = \%Credentials;
+		$credobj->write();
+		delete $cfg->{Main}{brokeruser};
+		delete $cfg->{Main}{brokerpass};
+		LOGWARN "Migrated MQTT credentials.";
+		LOGWARN "Please double-check in the plugin settings, if everything is still cool!";
+		$changed++;
+	}
+	
+	# Create Mosquitto config and password
+	if(! -e '/etc/mosquitto/conf.d/mqttgateway.conf') { 
+		my $credobj = LoxBerry::JSON::JSONIO->new();
+		my $cred = $credobj->open(filename => $credfile);
+		my %Credentials;
+		$Credentials{brokeruser} = 'loxberry';
+		$Credentials{brokerpass} = generate(16);
+		$cred->{Credentials} = \%Credentials;
+		$credobj->write();
+		
+		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=loxberry brokerpass=$Credentials{brokerpass} enable_mosquitto=$cfg->{Main}{enable_mosquitto}`;
+		
+		
+	}
+	
 	$json->write();
+	`chown loxberry:loxberry $cfgfile`;
+	`chown loxberry:loxberry $credfile`;
 	
 	LOGINF "Config:";
 	LOGDEB Dumper($cfg);
@@ -109,3 +152,33 @@ sub update_config
 	
 }
 
+#####################################################
+# Random Sub
+#####################################################
+sub generate {
+        local($e) = @_;
+        my($zufall,@words,$more);
+
+        if($e =~ /^\d+$/){
+                $more = $e;
+        }else{
+                $more = "10";
+        }
+
+        @words = qw(A B C D E F G H I J K L M N O P Q R S T U V W X Y Z a b c d e f g h i j k l m n o p q r s t u v w x y z 0 1 2 3 4 5 6 7 8 9);
+
+        foreach (1..$more){
+                $zufall .= $words[int rand($#words+1)];
+        }
+
+        return($zufall);
+}
+
+
+
+END 
+{
+	if ($log) {
+		$log->LOGEND();
+	}
+}

@@ -69,6 +69,7 @@
 		<legend>Use local Mosquitto broker</legend>
 		<input type="checkbox" name="Main.enable_mosquitto" id="Main.enable_mosquitto">
 		<label for="Main.enable_mosquitto">Use the local Mosquitto MQTT broker (default: enabled)</label>
+		<p class="hint">If <i>enabled</i>, changes of the credentials below will <u>change</u> your local MQTT broker credentials. If <i>disabled</i>, it only changes the credentials used by the Gateway to connect to your broker.</p>
 	</fieldset>
 
 	<div data-role="fieldcontain">
@@ -348,6 +349,8 @@
 			var idarray = id.split(".");
 			if(inputType === "checkbox") {
 				cfg.Main[idarray[1]] = $(this).is(":checked");
+				if(id == "Main.enable_mosquitto") 
+					creds_changed = true;
 			} else {
 				// console.log(idarray[0], idarray[1], $("#Main\\."+idarray[1]).val());
 			
@@ -399,7 +402,8 @@
 					data: { action: 'setcred', 
 							secpin: $('#securepin').val(),
 							brokeruser: creds.Credentials.brokeruser,
-							brokerpass: creds.Credentials.brokerpass}
+							brokerpass: creds.Credentials.brokerpass,
+							enable_mosquitto: cfg.Main.enable_mosquitto}
 				} )
 			.fail(function( data ) {
 				console.log( "Error saving credentials" );
