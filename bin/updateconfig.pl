@@ -156,7 +156,7 @@ sub update_config
 # Random Sub
 #####################################################
 sub generate {
-        local($e) = @_;
+        my $e = @_;
         my($zufall,@words,$more);
 
         if($e =~ /^\d+$/){
