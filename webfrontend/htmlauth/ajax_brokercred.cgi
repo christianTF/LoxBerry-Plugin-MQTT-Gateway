@@ -23,7 +23,7 @@ my $cgi = CGI->new;
 my $q = $cgi->Vars;
 
 # We only check SecurePIN if we are not root
-if(!$UID or $UID != 0) {
+if($> != 0) {
 	my $pincheck = checksecpin($q->{secpin});
 	if ($pincheck) {
 		response();
