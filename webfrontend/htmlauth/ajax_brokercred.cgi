@@ -105,11 +105,18 @@ sub setcred
 		my $mosq_passwdfile = "$lbpconfigdir/mosq_passwd";
 		
 		# Create and write config file
-		my $mosq_config = "password_file $mosq_passwdfile\n";
+		my $mosq_config;
+		
+		$mosq_config = "# This file is directly managed by the MQTT-Gateway plugin.\n";
+		$mosq_config .= "# Do not change this file, as your changes will be lost on saving in the MQTT-Gateway webinterface.\n\n";
+		
 		if(!$brokeruser and !$brokerpass) {
+			# Anonymous when no credentials are provided
 			$mosq_config .= "allow_anonymous true\n";
 		} else {
+			# User/Pass and password file when credentials are provided
 			$mosq_config .= "allow_anonymous false\n";
+			$mosq_config = "password_file $mosq_passwdfile\n";
 		}
 		open(my $fh, '>', $mosq_cfgfile) or 
 		do {

@@ -138,7 +138,7 @@ sub print_form
 sub settings_form
 {
 
-	my $mslist_select_html = LoxBerry::Web::mslist_select_html( FORMID => 'Main.msno', LABEL => 'Miniserver to relay to' );
+	my $mslist_select_html = LoxBerry::Web::mslist_select_html( FORMID => 'Main.msno', LABEL => 'Receiving Miniserver', DATA_MINI => "0" );
 	$template->param('mslist_select_html', $mslist_select_html);
 
 }
