@@ -62,7 +62,9 @@ my $udpmsg;
 my $udpremhost;
 my $udpMAXLEN = 1024;
 		
-	
+# Own MQTT Gateway topic
+my $gw_topicbase;
+
 print "Configfile: $cfgfile\n";
 while (! -e $cfgfile) {
 	print "ERROR: Cannot find config file $cfgfile";
@@ -272,21 +274,23 @@ sub received
 
 sub read_config
 {
-	my $configs_changed = 1;
+	my $configs_changed = 0;
 	$nextconfigpoll = time+5;
 	my $mtime;
 	
 	# Check cfg timestamp
 	$mtime = (stat($cfgfile))[9];
-	if(defined $cfg_timestamp and $cfg_timestamp == $mtime and defined $cfg) {
-		$configs_changed = 0;
+	if(!defined $cfg_timestamp or $cfg_timestamp != $mtime or !defined $cfg) {
+		LOGDEB "cfg mtime: $mtime";
+		$configs_changed = 1;
 	}
 	$cfg_timestamp = $mtime;
 	
 	# Check cred timestamp
 	$mtime = (stat($credfile))[9];
-	if(defined $cfg_cred_timestamp and $cfg_cred_timestamp == $mtime and defined $cfg_cred) {
-		$configs_changed = 0;
+	if(!defined $cfg_cred_timestamp or $cfg_cred_timestamp != $mtime or  !defined $cfg_cred) {
+		LOGDEB "cred mtime: $mtime";
+		$configs_changed = 1;
 	}
 	$cfg_cred_timestamp = $mtime;
 
@@ -298,6 +302,10 @@ sub read_config
 	LOGOK "Reading config changes";
 	# $LoxBerry::JSON::JSONIO::DEBUG = 1;
 
+	# Own topic
+	$gw_topicbase = lbhostname() . "/mqttgateway/";
+	LOGOK "MQTT Gateway topic base is $gw_topicbase";
+	
 	# Config file
 	$json = LoxBerry::JSON::JSONIO->new();
 	$cfg = $json->open(filename => $cfgfile, readonly => 1);
@@ -338,6 +346,9 @@ sub read_config
 		# Unsubscribe old topics
 		if($mqtt) {
 			eval {
+				$mqtt->retain($gw_topicbase . "status", "0");
+				$mqtt->retain($gw_topicbase . "statusmsg", "Disconnected");
+				
 				foreach my $topic (@subscriptions) {
 					LOGINF "UNsubscribing $topic";
 					$mqtt->unsubscribe($topic);
@@ -358,6 +369,10 @@ sub read_config
 			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, "loxberry", "loxberry");
 			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress});
 			
+			$mqtt->retain($gw_topicbase . "status", "1");
+			$mqtt->retain($gw_topicbase . "statusmsg", "Joining");
+			
+			
 			@subscriptions = @{$cfg->{subscriptions}};
 			# Re-Subscribe new topics
 			foreach my $topic (@subscriptions) {
@@ -366,6 +381,11 @@ sub read_config
 			}
 		};
 		if ($@) {
+			eval {
+				$mqtt->retain($gw_topicbase . "status", "0");
+				$mqtt->retain($gw_topicbase . "statusmsg", "Disconnected");
+			
+			};
 			LOGERR "Exception catched on reconnecting and subscribing: $!";
 			$health_state{broker}{message} = "Exception catched on reconnecting and subscribing: $!";
 			$health_state{broker}{error} = 1;
@@ -425,6 +445,8 @@ sub create_in_socket
 		#Blocking => 0,
 		Proto => 'udp') or 
 	do {
+		$mqtt->retain($gw_topicbase . "status", "1");
+		$mqtt->retain($gw_topicbase . "statusmsg", "UDP offline");
 		LOGERR "Could not create UDP IN socket: $@";
 		$health_state{udpinsocket}{message} = "Could not create UDP IN socket: $@";
 		$health_state{udpinsocket}{error} = 1;
@@ -434,6 +456,8 @@ sub create_in_socket
 	if($udpinsock) {
 		IO::Handle::blocking($udpinsock, 0);
 		LOGOK "UDP-IN listening on port " . $cfg->{Main}{udpinport};
+		$mqtt->retain($gw_topicbase . "status", "2");
+		$mqtt->retain($gw_topicbase . "statusmsg", "Connected");
 		$health_state{udpinsocket}{message} = "UDP-IN socket connected";
 		$health_state{udpinsocket}{error} = 0;
 		$health_state{udpinsocket}{count} = 0;
