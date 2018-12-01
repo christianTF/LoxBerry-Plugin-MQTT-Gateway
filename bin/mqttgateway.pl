@@ -346,8 +346,7 @@ sub read_config
 		# Unsubscribe old topics
 		if($mqtt) {
 			eval {
-				$mqtt->retain($gw_topicbase . "status", "0");
-				$mqtt->retain($gw_topicbase . "statusmsg", "Disconnected");
+				$mqtt->retain($gw_topicbase . "status", "Disconnected");
 				
 				foreach my $topic (@subscriptions) {
 					LOGINF "UNsubscribing $topic";
@@ -368,10 +367,7 @@ sub read_config
 			$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, $cfg_cred->{Credentials}{brokeruser}, $cfg_cred->{Credentials}{brokerpass});
 			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, "loxberry", "loxberry");
 			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress});
-			
-			$mqtt->retain($gw_topicbase . "status", "1");
-			$mqtt->retain($gw_topicbase . "statusmsg", "Joining");
-			
+			$mqtt->retain($gw_topicbase . "status", "Joining");
 			
 			@subscriptions = @{$cfg->{subscriptions}};
 			# Re-Subscribe new topics
@@ -382,8 +378,7 @@ sub read_config
 		};
 		if ($@) {
 			eval {
-				$mqtt->retain($gw_topicbase . "status", "0");
-				$mqtt->retain($gw_topicbase . "statusmsg", "Disconnected");
+				$mqtt->retain($gw_topicbase . "status", "Disconnected");
 			
 			};
 			LOGERR "Exception catched on reconnecting and subscribing: $!";
@@ -392,10 +387,18 @@ sub read_config
 			$health_state{broker}{count} += 1;
 			
 		} else {
+			eval {
+				$mqtt->retain($gw_topicbase . "status", "Connected");
+			};
 			$health_state{broker}{message} = "Connected and subscribed successfully";
 			$health_state{broker}{error} = 0;
 			$health_state{broker}{count} = 0;
+			
 		}
+		
+		# LOGINF "Sending Last Will and Testament"; 
+		# $mqtt->last_will($gw_topicbase . "status", "Died", 1);
+		
 		
 		# Conversions
 		undef %conversions;
@@ -445,8 +448,6 @@ sub create_in_socket
 		#Blocking => 0,
 		Proto => 'udp') or 
 	do {
-		$mqtt->retain($gw_topicbase . "status", "1");
-		$mqtt->retain($gw_topicbase . "statusmsg", "UDP offline");
 		LOGERR "Could not create UDP IN socket: $@";
 		$health_state{udpinsocket}{message} = "Could not create UDP IN socket: $@";
 		$health_state{udpinsocket}{error} = 1;
@@ -456,8 +457,6 @@ sub create_in_socket
 	if($udpinsock) {
 		IO::Handle::blocking($udpinsock, 0);
 		LOGOK "UDP-IN listening on port " . $cfg->{Main}{udpinport};
-		$mqtt->retain($gw_topicbase . "status", "2");
-		$mqtt->retain($gw_topicbase . "statusmsg", "Connected");
 		$health_state{udpinsocket}{message} = "UDP-IN socket connected";
 		$health_state{udpinsocket}{error} = 0;
 		$health_state{udpinsocket}{count} = 0;
@@ -482,6 +481,15 @@ sub save_relayed_states
 	$relayjsonobj->write();
 	undef $relayjsonobj;
 
+	# # Publish current health state
+	# foreach my $okey ( keys %health_state ) { 
+		# my $inner = $health_state{$okey};
+		# foreach my $ikey ( keys %$inner ) { 
+			# LOGDEB $okey . " " . $ikey . " " . $inner->{$ikey};
+		# }
+	# }
+	
+	
 	## Delete memory elements older than one day
 	
 	# Delete udp messages
@@ -503,6 +511,11 @@ sub save_relayed_states
 
 END
 {
+	if($mqtt) {
+		$mqtt->retain($gw_topicbase . "status", "Disconnected");
+		$mqtt->disconnect()
+	}
+	
 	if($log) {
 		LOGEND "MQTT Gateway exited";
 	}
