@@ -10,7 +10,7 @@ use strict;
 use IO::Socket;
 use Scalar::Util qw(looks_like_number);
 
-use Net::MQTT::Simple::Auth;
+use Net::MQTT::Simple;
 use LoxBerry::JSON::JSONIO;
 
 use Data::Dumper;
@@ -133,7 +133,7 @@ while(1) {
 		LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
 		## Send to MQTT Broker
 		# Check incoming message
-		my ($udptopic, $udpmessage) = split(/\ /, trim($udpmsg));
+		my ($udptopic, $udpmessage) = split(/\ /, trim($udpmsg), 2);
 		LOGDEB "Relaying: '$udptopic'='$udpmessage'";
 		eval {
 			$mqtt->publish($udptopic, $udpmessage);
@@ -363,10 +363,19 @@ sub read_config
 		# Reconnect MQTT broker
 		LOGINF "Connecting broker $cfg->{Main}{brokeraddress}";
 		eval {
-			#$mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
-			$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, $cfg_cred->{Credentials}{brokeruser}, $cfg_cred->{Credentials}{brokerpass});
-			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress}, "loxberry", "loxberry");
-			#$mqtt = Net::MQTT::Simple::Auth->new($cfg->{Main}{brokeraddress});
+			
+			$ENV{MQTT_SIMPLE_ALLOW_INSECURE_LOGIN} = 1;
+			
+			$mqtt = Net::MQTT::Simple->new($cfg->{Main}{brokeraddress});
+			
+			if($cfg_cred->{Credentials}{brokeruser} or $cfg_cred->{Credentials}{brokerpass}) {
+				LOGINF "Login at broker";
+				$mqtt->login($cfg_cred->{Credentials}{brokeruser}, $cfg_cred->{Credentials}{brokerpass});
+			}
+			
+			LOGINF "Sending Last Will and Testament"; 
+			$mqtt->last_will($gw_topicbase . "status", "Disconnected", 1);
+		
 			$mqtt->retain($gw_topicbase . "status", "Joining");
 			
 			@subscriptions = @{$cfg->{subscriptions}};
@@ -396,8 +405,6 @@ sub read_config
 			
 		}
 		
-		# LOGINF "Sending Last Will and Testament"; 
-		# $mqtt->last_will($gw_topicbase . "status", "Died", 1);
 		
 		
 		# Conversions
