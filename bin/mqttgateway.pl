@@ -366,7 +366,7 @@ sub read_config
 		if(! defined $cfg->{Main}{msno}) { $cfg->{Main}{msno} = 1; }
 		if(! defined $cfg->{Main}{udpport}) { $cfg->{Main}{udpport} = 11883; }
 		if(! defined $cfg->{Main}{brokeraddress}) { $cfg->{Main}{brokeraddress} = 'localhost'; }
-		if(! defined $cfg->{Main}{udpinport}) { $cfg->{Main}{udpinport} = 11883; }
+		if(! defined $cfg->{Main}{udpinport}) { $cfg->{Main}{udpinport} = 11884; }
 		if(! defined $cfg->{Main}{pollms}) { $cfg->{Main}{pollms} = 50; }
 		
 		

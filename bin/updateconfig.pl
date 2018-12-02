@@ -93,7 +93,7 @@ sub update_config
 		}
 	
 	if(! defined $cfg->{Main}{udpinport}) { 
-		$cfg->{Main}{udpinport} = 11883; 
+		$cfg->{Main}{udpinport} = 11884; 
 		LOGINF "Setting MQTT gateway UDP In-Port to " . $cfg->{Main}{udpinport};
 		$changed++;
 		}
