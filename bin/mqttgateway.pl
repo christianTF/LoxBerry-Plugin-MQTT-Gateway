@@ -179,6 +179,7 @@ sub udpin
 	} elsif($command eq 'reconnect') {
 		LOGOK "Forcing reconnection and retransmission to Miniserver";
 		$cfg_timestamp = 0;
+		$LoxBerry::IO::mem_sendall = 1;
 	} else {
 		LOGERR "Unknown incoming UDP command";
 	}
