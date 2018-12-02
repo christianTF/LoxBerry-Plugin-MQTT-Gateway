@@ -131,9 +131,11 @@ while(1) {
 		udpin();
 	} 
 	
-	# Save relayed_topics_http and relayed_topics_udp
+	## Save relayed_topics_http and relayed_topics_udp
+	## and send a ping to Miniserver
 	if (time > $nextrelayedstatepoll) {
 		save_relayed_states();
+		$mqtt->retain($gw_topicbase . "keepaliveepoch", time);
 	}
 	
 	Time::HiRes::sleep($cfg->{Main}{pollms}/1000);
@@ -410,6 +412,7 @@ sub read_config
 			$mqtt->retain($gw_topicbase . "status", "Joining");
 			
 			@subscriptions = @{$cfg->{subscriptions}};
+			push @subscriptions, $gw_topicbase . "#";
 			# Re-Subscribe new topics
 			foreach my $topic (@subscriptions) {
 				LOGINF "Subscribing $topic";
