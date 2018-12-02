@@ -128,21 +128,7 @@ while(1) {
 		$udpinsock->recv($udpmsg, $udpMAXLEN);
 	};
 	if($udpmsg) {
-		my($port, $ipaddr) = sockaddr_in($udpinsock->peername);
-		$udpremhost = gethostbyaddr($ipaddr, AF_INET);
-		LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
-		## Send to MQTT Broker
-		# Check incoming message
-		my ($udptopic, $udpmessage) = split(/\ /, trim($udpmsg), 2);
-		LOGDEB "Relaying: '$udptopic'='$udpmessage'";
-		eval {
-			$mqtt->publish($udptopic, $udpmessage);
-		};
-		if($@) {
-			LOGERR "Catched exception on sending to MQTT: $!";
-		}
-		
-		# $udpinsock->send("CONFIRM: $udpmsg ");
+		udpin();
 	} 
 	
 	# Save relayed_topics_http and relayed_topics_udp
@@ -153,6 +139,51 @@ while(1) {
 	Time::HiRes::sleep($cfg->{Main}{pollms}/1000);
 }
 
+sub udpin
+{
+
+	my($port, $ipaddr) = sockaddr_in($udpinsock->peername);
+	$udpremhost = gethostbyaddr($ipaddr, AF_INET);
+	LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
+	## Send to MQTT Broker
+	# Check incoming message
+	
+	$udpmsg = trim($udpmsg);
+	my ($command, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 3);
+	
+	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne "reconnect") {
+		# Old syntax - move around the values
+		$udpmessage = trim($udptopic . " " . $udpmessage);
+		$udptopic = $command;
+		$command = 'publish';
+	}
+	$command = lc($command);
+	if($command eq 'publish') {
+		LOGDEB "Publishing: '$udptopic'='$udpmessage'";
+		eval {
+			$mqtt->publish($udptopic, $udpmessage);
+		};
+		if($@) {
+			LOGERR "Catched exception on publishing to MQTT: $!";
+		}
+	} elsif($command eq 'retain') {
+		LOGDEB "Publish (retain): '$udptopic'='$udpmessage'";
+		eval {
+			$mqtt->retain($udptopic, $udpmessage);
+		};
+		if($@) {
+			LOGERR "Catched exception on publishing (retain) to MQTT: $!";
+		}
+	} elsif($command eq 'reconnect') {
+		LOGOK "Forcing reconnection and retransmission to Miniserver";
+		$cfg_timestamp = 0;
+	} else {
+		LOGERR "Unknown incoming UDP command";
+	}
+	
+	# $udpinsock->send("CONFIRM: $udpmsg ");
+
+}
 
 
 sub received
