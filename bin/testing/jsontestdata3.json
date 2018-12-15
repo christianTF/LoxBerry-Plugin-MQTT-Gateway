@@ -1,0 +1,30 @@
+  {
+    "_id": "5c1425829df3fbc37c6bb996",
+    "index": 0,
+    "guid": "cf508077-e82e-4bca-837c-c1d719c180a2",
+    "isActive": true,
+    "balance": "$2,858.34",
+    "picture": "http://placehold.it/32x32",
+    "age": 30,
+    "email": "murraydelaney@shopabout.com",
+    "phone": "+1 (950) 411-2445",
+    "address": "567 Colonial Court, Roulette, New Jersey, 2977",
+    "latitude": 87.147079,
+    "tags": [
+      "commodo",
+      "deserunt",
+      "ut"
+    ],
+    "friends": [
+      {
+        "id": 0,
+        "name": "Russo Mcbride"
+      },
+      {
+        "id": 1,
+        "name": "Huber Morales"
+      }
+    ],
+    "greeting": "Hello, undefined! You have 1 unread messages.",
+    "favoriteFruit": "apple"
+  }

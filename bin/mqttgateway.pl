@@ -12,6 +12,7 @@ use Scalar::Util qw(looks_like_number);
 
 use Net::MQTT::Simple;
 use LoxBerry::JSON::JSONIO;
+use Hash::Flatten;
 
 use Data::Dumper;
 
@@ -210,15 +211,34 @@ sub received
 			$sendhash{$topic} = $message;
 		} else {
 			LOGDEB "  Expanding json message";
-			LOGDEB Dumper($contjson);
+			# LOGDEB Dumper($contjson);
 			$is_json = 1;
 			undef $@;
 			eval {
-				for my $record ( keys %$contjson ) {
+			
+				my $flatterer = new Hash::Flatten({
+					HashDelimiter => '_', 
+					ArrayDelimiter => '_',
+					OnRefScalar => 'warn',
+					#DisableEscapes => 'true',
+					EscapeSequence => '#',
+					OnRefGlob => '',
+					OnRefScalar  => '',
+					OnRefRef => '',
+				});
+				my $flat_hash = $flatterer->flatten($contjson);
+				for my $record ( keys %$flat_hash ) {
 					my $val = $contjson->{$record};
 					$sendhash{"$topic/$record"} = $val;
-					#LOGDEB "  It is $record: $val";
+					# LOGDEB "  It is $record: $val";
 				}
+				
+				## Old one-level code
+				# for my $record ( keys %$contjson ) {
+					# my $val = $contjson->{$record};
+					# $sendhash{"$topic/$record"} = $val;
+					# #LOGDEB "  It is $record: $val";
+				# }
 			};
 			if($@) { 
 				LOGERR "Error on JSON expansion: $!";
