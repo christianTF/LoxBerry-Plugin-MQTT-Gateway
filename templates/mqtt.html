@@ -312,11 +312,13 @@
 		for(var elemname in cfg.Main) {
 			var inputType = $("#Main\\."+elemname).attr('type');
 			console.log("Element", elemname, cfg.Main[elemname], inputType);
-			if(inputType == "checkbox" && cfg.Main[elemname] == 1) {
-				$("#Main\\."+elemname).prop('checked', true);
+			if(inputType == "checkbox") {
+				if( cfg.Main[elemname] == 1) 
+					$("#Main\\."+elemname).prop('checked', true);
 			} else {
 				$("#Main\\."+elemname).val(cfg.Main[elemname]);
 			}
+		
 		}
 		$('select').selectmenu('refresh', true);
 		$('input:checkbox').checkboxradio('refresh');
