@@ -227,8 +227,9 @@ sub received
 					OnRefRef => '',
 				});
 				my $flat_hash = $flatterer->flatten($contjson);
+				# LOGDEB Dumper($flat_hash);
 				for my $record ( keys %$flat_hash ) {
-					my $val = $contjson->{$record};
+					my $val = $flat_hash->{$record};
 					$sendhash{"$topic/$record"} = $val;
 					# LOGDEB "  It is $record: $val";
 				}
@@ -307,7 +308,9 @@ sub received
 		}
 		#LOGDEB "  HTTP: Sending as $topic to MS No. " . $cfg->{Main}{msno};
 		#LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
+		
 		my $httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash);
+		
 		# if (!$httpresp) {
 			# LOGDEB "  HTTP: Virtual input not available?";
 		# } elsif ($httpresp eq "1") {
