@@ -10,20 +10,31 @@ $udpinport = $json['Main']['udpinport'];
 
 $topic = $_GET['topic'];
 $value = $_GET['value'];
+$retain = $_GET['retain'];
 
-if(empty($topic) or empty($value)) 
+echo "topic: $topic\n";
+echo "value: $value\n";
+echo "retain: $retain\n";
+
+
+
+if(empty($topic)) 
 	syntaxhelp();
 
 $address = "udp://127.0.0.1:$udpinport";
 $socket = fsockopen($address);
-$written = fwrite($socket, "$topic $value");
+if (is_enabled($retain)) {
+	$written = fwrite($socket, "retain $topic $value");
+} else {
+	$written = fwrite($socket, "publish $topic $value");
+}
 
 print "<p>$topic $value</p>";
 if($written == 0) {
-	print "<p style='color:red'>Could not write to udp address $address</p>";
+	print "<p style='color:red'>Could not write to udp address $address</p>\n";
 }
 else {
-	print "<p style='color:green'>$written bytes written to udp address $address</p>";
+	print "<p style='color:green'>$written bytes written to udp address $address</p>\n";
 }
 
 exit(0);
@@ -33,6 +44,9 @@ function syntaxhelp()
 	global $topic, $value;
 	print "<p style='color:red;'>ERROR with parameters</p>";
 	print "<p>Usage:</p>\n";
-	print htmlentities("http://" . "<user>:<pass>@ " . lbhostname() . ":" . lbwebserverport() . "/admin/plugins/mqttgateway/mqtt.php?topic=homematic/temperature/livingroom&value=21.3");
+	print htmlentities("Publish: http://" . "<user>:<pass>@ " . lbhostname() . ":" . lbwebserverport() . "/admin/plugins/mqttgateway/mqtt.php?topic=homematic/temperature/livingroom&value=21.3");
+	print htmlentities("With retain: http://" . "<user>:<pass>@ " . lbhostname() . ":" . lbwebserverport() . "/admin/plugins/mqttgateway/mqtt.php?retain=1&topic=homematic/temperature/livingroom&value=21.3");
+	print htmlentities("Delete value: http://" . "<user>:<pass>@ " . lbhostname() . ":" . lbwebserverport() . "/admin/plugins/mqttgateway/mqtt.php?retain=1&topic=homematic/temperature/livingroom");
+	print "\n";
 	exit(1);
 }
