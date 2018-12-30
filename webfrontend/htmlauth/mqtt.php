@@ -45,8 +45,10 @@ function syntaxhelp()
 	print "<p style='color:red;'>ERROR with parameters</p>";
 	print "<p>Usage:</p>\n";
 	print htmlentities("Publish: http://" . "<user>:<pass>@ " . lbhostname() . ":" . lbwebserverport() . "/admin/plugins/mqttgateway/mqtt.php?topic=homematic/temperature/livingroom&value=21.3");
+	print "<br>\n";
 	print htmlentities("With retain: http://" . "<user>:<pass>@ " . lbhostname() . ":" . lbwebserverport() . "/admin/plugins/mqttgateway/mqtt.php?retain=1&topic=homematic/temperature/livingroom&value=21.3");
+	print "<br>\n";
 	print htmlentities("Delete value: http://" . "<user>:<pass>@ " . lbhostname() . ":" . lbwebserverport() . "/admin/plugins/mqttgateway/mqtt.php?retain=1&topic=homematic/temperature/livingroom");
-	print "\n";
+	print "<br>\n";
 	exit(1);
 }
