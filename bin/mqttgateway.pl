@@ -285,6 +285,8 @@ sub received
 			foreach my $sendtopic (keys %sendhash) {
 				$relayed_topics_udp{$sendtopic}{timestamp} = time;
 				$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
+				$relayed_topics_udp{$sendtopic}{originaltopic} = $topic;
+				
 				LOGDEB "  UDP: Sending as $sendtopic to MS No. " . $cfg->{Main}{msno};
 			}	
 			my $udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash);
@@ -304,6 +306,7 @@ sub received
 		foreach my $sendtopic (keys %sendhash) {
 			$relayed_topics_http{$sendtopic}{timestamp} = time;
 			$relayed_topics_http{$sendtopic}{message} = $sendhash{$sendtopic};
+			$relayed_topics_http{$sendtopic}{originaltopic} = $topic;
 			LOGDEB "  HTTP: Sending to input $sendtopic: $sendhash{$sendtopic}";
 		}
 		#LOGDEB "  HTTP: Sending as $topic to MS No. " . $cfg->{Main}{msno};
