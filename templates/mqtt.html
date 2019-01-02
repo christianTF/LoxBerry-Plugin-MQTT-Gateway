@@ -181,17 +181,21 @@
 	</style>
 	
 	<div class="wide">Last transmissions to Miniserver</div>
-	<p>This page lists the transmissions via the MQTT Gateway to the Miniserver in the last 24 hours. It is refreshed approximately every minute if you press browsers refresh button.<p>
+	<p>This page lists the transmissions via the MQTT Gateway to the Miniserver in the last 24 hours. It is refreshed <i>automatically on-the-fly</i> (as long as you have text selected, updating stops).<p>
 	<p>You can copy and paste the 'Virtual Input' names for HTTP transmissions, or create command recognitions from the UDP messages.</p>
 	
 	<div data-role='collapsible' id='coll_mqtthttp' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
-		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqtthttp'>HTTP Virtual Inputs <span style='font-size:80%;'>(<TMPL_VAR http_count> entries)</span></h2>
-		<TMPL_VAR http_table>
+		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqtthttp'>HTTP Virtual Inputs <span style='font-size:80%;'>(<span id="http_count">0</span> entries)</span></h2>
+		<div id="generated_http_table">
+		</div>
+		<!-- <TMPL_VAR http_table> -->
 	</div>
 	
 	<div data-role='collapsible' id='coll_mqttudp' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
-		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqttudp'>UDP Transmissions <span style='font-size:80%;'>(<TMPL_VAR udp_count> entries)</span></h2>
-		<TMPL_VAR udp_table>
+		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqttudp'>UDP Transmissions <span style='font-size:80%;'>(<span id="udp_count">0</span> entries)</span></h2>
+		<div id="generated_udp_table">
+		</div>
+		<!-- <TMPL_VAR udp_table> -->
 	</div>
 	<br>
 	
@@ -222,11 +226,19 @@
 	
 	
 	<script>
-		$( document ).ready(function() {
-		restoreWindow();
-		$(".ui-collapsible").on("collapsiblecollapse", function(event, ui) {console.log("Collaps", $(this).attr('id'));storeWindow($(this).attr('id'), "collapse");});
-		$(".ui-collapsible").on("collapsibleexpand", function(event, ui) {console.log("Expand", $(this).attr('id'));storeWindow($(this).attr('id'), "expand");});
 		
+		var updateTopicsRunning = 0;
+		
+		$( document ).ready(function() {
+			restoreWindow();
+			$(".ui-collapsible").on("collapsiblecollapse", function(event, ui) {console.log("Collaps", $(this).attr('id'));storeWindow($(this).attr('id'), "collapse");});
+			$(".ui-collapsible").on("collapsibleexpand", function(event, ui) {console.log("Expand", $(this).attr('id'));storeWindow($(this).attr('id'), "expand");});
+			
+			// Update date from http and udp table
+			http_table_skel();
+			udp_table_skel();
+			updateTopics();
+			setInterval(updateTopics, 1000);
 		});
 
 		function storeWindow (name, pos) 
@@ -243,9 +255,122 @@
 				} else {
 					sessionStorage.removeItem("coll_"+$(value).attr('id'));
 				}
-				console.log($(value).attr('id'), pos);	}
+				// console.log($(value).attr('id'), pos);	
+			}
 			);
 		}
+	
+		function updateTopics() {
+			// console.log("Update topics");
+			// Serialize requests
+			if (getSelectedText()) {
+				// console.log("Text is selected");
+				return; }
+			if (updateTopicsRunning) return;
+			updateTopicsRunning = 1;
+			$.post( 'index.cgi', {
+				ajax: 'relayed_topics' })
+			.done(function(resp) {
+				// console.log( "ajax_post", "success", resp );
+				if (getSelectedText()) {
+					console.log("Text is selected");
+				return; }
+				generate_http_table(resp);
+				generate_udp_table(resp);
+				
+		  })
+		  .fail(function(resp) {
+				console.log( "ajax_post", "failed", resp );
+		  })
+		  .always(function(resp) {
+				// console.log( "ajax_post", "finished", resp );
+				updateTopicsRunning = 0;
+		  });
+		}
+		
+		function http_table_skel() {
+			var http_table;
+			http_table = '<table class="topics_table" id="http_table" data-filter="true">\n';
+			http_table+= '<thead>\n';
+			http_table+= '<tr>\n';
+			http_table+= '<th>Miniserver Virtual Input</th>\n';
+			http_table+= '<th>Last value</th>\n';
+			http_table+= '<th>Last submission</th>\n';
+			http_table+= '</tr>\n';
+			http_table+= '</thead>\n';
+			http_table+= '<tbody>\n';
+			http_table+= '</tbody>\n';
+			http_table+= '</table>\n';
+			$('#generated_http_table').html(http_table).trigger('create');
+		}
+		
+		function udp_table_skel() {
+			var udp_table;
+			udp_table = '<table class="topics_table" id="udp_table" data-filter="true">\n';
+			udp_table+= '<thead>\n';
+			udp_table+= '<tr>\n';
+			udp_table+= '<th>Miniserver UDP</th>\n';
+			udp_table+= '<th>Last submission</th>\n';
+			udp_table+= '</tr>\n';
+			udp_table+= '</thead>\n';
+			udp_table+= '<tbody>\n';
+			udp_table+= '</tbody>\n';
+			udp_table+= '</table>\n';
+			$('#generated_udp_table').html(udp_table).trigger('create');
+		}
+		
+		function generate_http_table(resp) {
+			var http_count = 0;
+			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+			
+			$("#http_table").find("tr:gt(0)").remove();
+			
+			Object.entries(resp.http).map(([topic, content]) => {
+				var d = new Date(content.timestamp*1000); 
+				http_count++;
+				http_row = '<tr>\n';
+				http_row+= '<td>' + topic + '</td>\n';
+				http_row+= '<td>' + content.message + '</td>\n';
+				http_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</td>\n';
+				http_row+= '</tr>\n';
+				$("#http_table tbody").append(http_row);
+			});
+						
+			$("#http_table").filterable('refresh');
+			$("#http_count").text(http_count);
+		}
+		
+		function generate_udp_table(resp) {
+			var udp_count = 0;
+			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+			
+			$("#udp_table").find("tr:gt(0)").remove();
+			
+			Object.entries(resp.udp).map(([topic, content]) => {
+				var d = new Date(content.timestamp*1000); 
+				udp_count++;
+				udp_row = '<tr>\n';
+				udp_row+= '<td>' + topic + '</td>\n';
+				//udp_row+= '<td>' + content.message + '</td>\n';
+				udp_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</td>\n';
+				udp_row+= '</tr>\n';
+				$("#udp_table tbody").append(udp_row);
+			});
+						
+			$("#udp_table").filterable('refresh');
+			$("#udp_count").text(udp_count);
+		}
+		
+		function getSelectedText() {
+			var text = "";
+				if (typeof window.getSelection != "undefined") {
+					text = window.getSelection().toString();
+				} else if (typeof document.selection != "undefined" && document.selection.type == "Text") {
+				text = document.selection.createRange().text;
+			}
+        return text;
+    }
+    
 		
 	</script>
 

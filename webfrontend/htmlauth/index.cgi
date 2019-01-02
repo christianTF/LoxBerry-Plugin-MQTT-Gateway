@@ -169,69 +169,70 @@ sub conversions_form
 sub topics_form
 {
 
-	require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
-	require POSIX;
 	
-	my $datafile = "/dev/shm/mqttgateway_topics.json";
-	my $relayjsonobj = LoxBerry::JSON::JSONIO->new();
-	my $relayjson = $relayjsonobj->open(filename => $datafile);
+	# require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
+	# require POSIX;
 	
-	
-	# HTTP
-	my $http_table, $http_count = 0;
-	$http_table .= qq { <table class="topics_table" id="http_table" data-filter="true"> };
-	$http_table .= qq { <thead> };
-	$http_table .= qq { <tr> };
-	$http_table .= qq { <th>Miniserver Virtual Input</th> };
-	$http_table .= qq { <th>Last value</th> };
-	$http_table .= qq { <th>Last submission</th> };
-	$http_table .= qq { </tr> };
-	$http_table .= qq { </thead> };
-	$http_table .= qq { <tbody> };
-	
-	foreach my $topic (sort keys %{$relayjson->{http}}) {
-		$http_count++;
-		$http_table .= qq { <tr> };
-		$http_table .= qq { <td>$topic</td> };
-		$http_table .= qq { <td>$relayjson->{http}{$topic}{message}</td> };
-		$http_table .= qq { <td> } . POSIX::strftime('%d.%m.%Y %H:%M:%S', localtime($relayjson->{http}{$topic}{timestamp})) . qq { </td> };
-		$http_table .= qq { </tr> };
-	}
-	$http_table .= qq { </tbody> };
-	$http_table .= qq { </table> };
-	
-	$template->param("http_table", $http_table);
-	$template->param("http_count", $http_count);
+	# my $datafile = "/dev/shm/mqttgateway_topics.json";
+	# my $relayjsonobj = LoxBerry::JSON::JSONIO->new();
+	# my $relayjson = $relayjsonobj->open(filename => $datafile);
 	
 	
-	# UDP
-	my $udp_table, $udp_count = 0;
-	$udp_table .= qq { <table class="topics_table" id="udp_table" data-filter="true"> };
-	$udp_table .= qq { <thead> };
-	$udp_table .= qq { <tr> };
-	$udp_table .= qq { <th>Miniserver UDP</th> };
-	#$udp_table .= qq { <th>Last value</th> };
-	$udp_table .= qq { <th>Last submission</th> };
-	$udp_table .= qq { </tr> };
-	$udp_table .= qq { </thead> };
-	$udp_table .= qq { <tbody> };
+	# # HTTP
+	# my $http_table, $http_count = 0;
+	# $http_table .= qq { <table class="topics_table" id="http_table" data-filter="true"> };
+	# $http_table .= qq { <thead> };
+	# $http_table .= qq { <tr> };
+	# $http_table .= qq { <th>Miniserver Virtual Input</th> };
+	# $http_table .= qq { <th>Last value</th> };
+	# $http_table .= qq { <th>Last submission</th> };
+	# $http_table .= qq { </tr> };
+	# $http_table .= qq { </thead> };
+	# $http_table .= qq { <tbody> };
 	
-	foreach my $topic (sort keys %{$relayjson->{udp}}) {
-		$udp_count++;
-		$udp_table .= qq { <tr> };
-		$udp_table .= qq { <td>MQTT: $topic=$relayjson->{udp}{$topic}{message}</td> };
-		# $udp_table .= qq { <td>$relayjson->{udp}{$topic}{message}</td> };
-		$udp_table .= qq { <td> } . POSIX::strftime('%d.%m.%Y %H:%M:%S', localtime($relayjson->{udp}{$topic}{timestamp})) . qq { </td> };
-		$udp_table .= qq { </tr> };
-	}
-	$udp_table .= qq { </tbody> };
-	$udp_table .= qq { </table> };
+	# foreach my $topic (sort keys %{$relayjson->{http}}) {
+		# $http_count++;
+		# $http_table .= qq { <tr> };
+		# $http_table .= qq { <td>$topic</td> };
+		# $http_table .= qq { <td>$relayjson->{http}{$topic}{message}</td> };
+		# $http_table .= qq { <td> } . POSIX::strftime('%d.%m.%Y %H:%M:%S', localtime($relayjson->{http}{$topic}{timestamp})) . qq { </td> };
+		# $http_table .= qq { </tr> };
+	# }
+	# $http_table .= qq { </tbody> };
+	# $http_table .= qq { </table> };
 	
-	$template->param("udp_table", $udp_table);
-	$template->param("udp_count", $udp_count);
+	# $template->param("http_table", $http_table);
+	# $template->param("http_count", $http_count);
+	
+	
+	# # UDP
+	# my $udp_table, $udp_count = 0;
+	# $udp_table .= qq { <table class="topics_table" id="udp_table" data-filter="true"> };
+	# $udp_table .= qq { <thead> };
+	# $udp_table .= qq { <tr> };
+	# $udp_table .= qq { <th>Miniserver UDP</th> };
+	# #$udp_table .= qq { <th>Last value</th> };
+	# $udp_table .= qq { <th>Last submission</th> };
+	# $udp_table .= qq { </tr> };
+	# $udp_table .= qq { </thead> };
+	# $udp_table .= qq { <tbody> };
+	
+	# foreach my $topic (sort keys %{$relayjson->{udp}}) {
+		# $udp_count++;
+		# $udp_table .= qq { <tr> };
+		# $udp_table .= qq { <td>MQTT: $topic=$relayjson->{udp}{$topic}{message}</td> };
+		# # $udp_table .= qq { <td>$relayjson->{udp}{$topic}{message}</td> };
+		# $udp_table .= qq { <td> } . POSIX::strftime('%d.%m.%Y %H:%M:%S', localtime($relayjson->{udp}{$topic}{timestamp})) . qq { </td> };
+		# $udp_table .= qq { </tr> };
+	# }
+	# $udp_table .= qq { </tbody> };
+	# $udp_table .= qq { </table> };
+	
+	# $template->param("udp_table", $udp_table);
+	# $template->param("udp_count", $udp_count);
 	
 	# Donate
-	my $donate = "Not many words to say... As I am currently testing with my \"production\" house, I am collecting for a Test-Miniserver. Also, I'm buying (not <i>really</i> needed) hardware devices (e.g. Shelly's) to test it with LoxBerry and plugins. As I'm spending my time, hopefully you support my expenses for my test environment. About a donation of about 5 or 10 Euros, or whatever amount it is worth for you, I will be very happy!";
+	my $donate = "Thanks to all that have already donated for my special Test-Miniserver, making things much more easier than testing on the \"production\" house! Also, I'm buying (not <i>really</i> needed) hardware devices (e.g. Shelly's and other equipment) to test it with LoxBerry and plugins. As I'm spending my time, hopefully you support my expenses for my test environment. About a donation of about 5 or 10 Euros, or whatever amount it is worth for you, I will be very happy!";
 	my $donate_done_remove = "Done! Remove this!";
 	$template->param("donate", $donate);
 	$template->param("donate_done_remove", $donate_done_remove);
