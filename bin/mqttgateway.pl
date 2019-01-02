@@ -136,6 +136,7 @@ while(1) {
 	## and send a ping to Miniserver
 	if (time > $nextrelayedstatepoll) {
 		save_relayed_states();
+		$nextrelayedstatepoll = time+60;
 		$mqtt->retain($gw_topicbase . "keepaliveepoch", time);
 	}
 	
@@ -154,7 +155,7 @@ sub udpin
 	$udpmsg = trim($udpmsg);
 	my ($command, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 3);
 	
-	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne "reconnect") {
+	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne "reconnect" and lc($command) ne "save_relayed_states") {
 		# Old syntax - move around the values
 		$udpmessage = trim($udptopic . " " . $udpmessage);
 		$udptopic = $command;
@@ -181,6 +182,9 @@ sub udpin
 		LOGOK "Forcing reconnection and retransmission to Miniserver";
 		$cfg_timestamp = 0;
 		$LoxBerry::IO::mem_sendall = 1;
+	} elsif($command eq 'save_relayed_states') {
+		LOGOK "Save relayed states triggered by udp request";
+		save_relayed_states();
 	} else {
 		LOGERR "Unknown incoming UDP command";
 	}
@@ -533,7 +537,7 @@ sub create_in_socket
 
 sub save_relayed_states
 {
-	$nextrelayedstatepoll = time + 60;
+	#$nextrelayedstatepoll = time + 60;
 	
 	LOGINF "Relayed topics are saved on RAMDISK for UI";
 	

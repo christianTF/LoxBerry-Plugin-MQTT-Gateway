@@ -267,9 +267,14 @@
 				// console.log("Text is selected");
 				return; }
 			if (updateTopicsRunning) return;
+			
+			var udpinport = 0;
+			if (cfg) udpinport = cfg.Main.udpinport;
+			
 			updateTopicsRunning = 1;
 			$.post( 'index.cgi', {
-				ajax: 'relayed_topics' })
+				ajax: 'relayed_topics',
+				udpinport: udpinport })
 			.done(function(resp) {
 				// console.log( "ajax_post", "success", resp );
 				if (getSelectedText()) {
