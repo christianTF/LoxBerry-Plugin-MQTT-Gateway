@@ -184,6 +184,9 @@
 	<p>This page lists the transmissions via the MQTT Gateway to the Miniserver in the last 24 hours. It is refreshed <i>automatically on-the-fly</i> (as long as you have text selected, updating stops).<p>
 	<p>You can copy and paste the 'Virtual Input' names for HTTP transmissions, or create command recognitions from the UDP messages.</p>
 	
+	<input type="checkbox" name="topics_show_advanced" id="topics_show_advanced" data-mini="true">
+	<label for="topics_show_advanced">Show advanced table information</label>
+		
 	<div data-role='collapsible' id='coll_mqtthttp' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
 		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqtthttp'>HTTP Virtual Inputs <span style='font-size:80%;'>(<span id="http_count">0</span> entries)</span></h2>
 		<div id="generated_http_table">
@@ -334,9 +337,17 @@
 				var d = new Date(content.timestamp*1000); 
 				http_count++;
 				http_row = '<tr>\n';
-				http_row+= '<td>' + topic + '</td>\n';
+				http_row+= '<td>' + topic;
+				if( $("#topics_show_advanced").prop('checked') == true ) 
+					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
+				http_row+= '</td>\n';
 				http_row+= '<td>' + content.message + '</td>\n';
-				http_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</td>\n';
+				http_row+= '<td><div class="ui-grid-a"><div class="ui-block-a" style="width: 85%">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</div>';
+				if( $("#topics_show_advanced").prop('checked') == true ) {
+					http_row+= '<div class="ui-block-b" style="width: 15%"><a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic + '" onclick="deleteTopic(this);"></a></div>';
+				}
+					
+				http_row+= '</div></td>\n';
 				http_row+= '</tr>\n';
 				$("#http_table tbody").append(http_row);
 			});
@@ -355,9 +366,17 @@
 				var d = new Date(content.timestamp*1000); 
 				udp_count++;
 				udp_row = '<tr>\n';
-				udp_row+= '<td>' + topic + '</td>\n';
+				udp_row+= '<td>MQTT: ' + topic + '=' + content.message;
+				if( $("#topics_show_advanced").prop('checked') == true ) 
+					udp_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
+				udp_row+= '</td>\n';
+				
 				//udp_row+= '<td>' + content.message + '</td>\n';
-				udp_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</td>\n';
+				udp_row+= '<td><div class="ui-grid-a"><div class="ui-block-a" style="width: 85%">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</div>';
+				if( $("#topics_show_advanced").prop('checked') == true ) {
+					udp_row+= '<div class="ui-block-b" style="width: 15%"><a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic + '" onclick="deleteTopic(this);"></a></div>';
+				}
+				udp_row+= '</div></td>\n';
 				udp_row+= '</tr>\n';
 				$("#udp_table tbody").append(udp_row);
 			});
@@ -374,8 +393,24 @@
 				text = document.selection.createRange().text;
 			}
         return text;
-    }
+		}
     
+		function deleteTopic(obj) {
+			console.log("Delete", event);
+			console.log(event.toElement.dataset.topic);
+			var udpinport = 0;
+			if (cfg) udpinport = cfg.Main.udpinport;
+			
+			$.post( 'index.cgi', {
+				ajax: 'retain',
+				udpinport: udpinport,
+				topic: event.toElement.dataset.topic })
+			.done(function(resp) {
+				console.log( "ajax_post", "success", resp );
+				return; });
+		
+		
+		} 
 		
 	</script>
 

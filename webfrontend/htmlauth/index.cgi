@@ -51,6 +51,26 @@ if( $q->{ajax} ) {
 		my $datafile = "/dev/shm/mqttgateway_topics.json";
 		print LoxBerry::System::read_file($datafile);
 	}
+	
+	if( $q->{ajax} eq "retain" ) {
+		
+		if (defined $q->{udpinport} and $q->{udpinport} ne "0") {
+			require IO::Socket;
+			my $udpoutsock = IO::Socket::INET->new(
+				Proto    => 'udp',
+				PeerPort => $q->{udpinport},
+				PeerAddr => 'localhost',
+			) or print STDERR "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
+
+			$udpoutsock->send("retain $q->{topic}");
+			$udpoutsock->close;
+			
+		}
+		
+		my $datafile = "/dev/shm/mqttgateway_topics.json";
+		print LoxBerry::System::read_file($datafile);
+	}
+	
 	exit;
 
 } else {
