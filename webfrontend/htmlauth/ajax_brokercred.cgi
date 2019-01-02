@@ -116,7 +116,7 @@ sub setcred
 		} else {
 			# User/Pass and password file when credentials are provided
 			$mosq_config .= "allow_anonymous false\n";
-			$mosq_config = "password_file $mosq_passwdfile\n";
+			$mosq_config .= "password_file $mosq_passwdfile\n";
 		}
 		open(my $fh, '>', $mosq_cfgfile) or 
 		do {
