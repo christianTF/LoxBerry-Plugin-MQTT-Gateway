@@ -39,7 +39,7 @@
 	<div data-role="fieldcontain">
 		<label for="Main.udpport">Miniserver UDP port</label>
 		<input name="Main.udpport" id="Main.udpport" type="text" />
-		<p class="hint">Default UDP port is 11883</p>
+		<p class="hint">Default UDP port is <span class="mono">11883</span>. If UDP is enabled, data <i>from the broker</i> are sent to this udp port on the Miniserver.</p>
 	</div>
 
 	<div data-role="fieldcontain">
@@ -59,7 +59,7 @@
 	<div data-role="fieldcontain">
 		<label for="Main.udpinport">Gateway UDP in-port</label>
 		<input name="Main.udpinport" id="Main.udpinport" type="text" />
-		<p class="hint">Default UDP IN-port on LoxBerry is 11884</p>
+		<p class="hint">Default UDP IN-port on LoxBerry is <span class="mono">11884</span>. Publish data <i>from the Miniserver</i> to this udp port.</p>
 	</div>
 
 	<br>
@@ -75,7 +75,7 @@
 	<div data-role="fieldcontain">
 		<label for="Main.brokeraddress">MQTT Broker address</label>
 		<input name="Main.brokeraddress" id="Main.brokeraddress" type="text" />
-		<p class="hint">Default is <span class="mono">localhost</span> for the local Mosquitto installation. Experienced users may use a remote MQTT broker.</p>
+		<p class="hint">Default is <span class="mono">localhost:1883</span> for the local Mosquitto installation. Experienced users may use a remote MQTT broker. Configure MQTT devices to connect to the real hostname (usually loxberry) and port.</p>
 	</div>
 
 	<div id="securepin_block" style="background-color:lightyellow;">
@@ -317,7 +317,8 @@
 			udp_table = '<table class="topics_table" id="udp_table" data-filter="true">\n';
 			udp_table+= '<thead>\n';
 			udp_table+= '<tr>\n';
-			udp_table+= '<th>Miniserver UDP</th>\n';
+			udp_table+= '<th>Data</th>\n';
+			udp_table+= '<th>Command Recognition</th>\n';
 			udp_table+= '<th>Last submission</th>\n';
 			udp_table+= '</tr>\n';
 			udp_table+= '</thead>\n';
@@ -366,15 +367,18 @@
 				var d = new Date(content.timestamp*1000); 
 				udp_count++;
 				udp_row = '<tr>\n';
-				udp_row+= '<td>MQTT: ' + topic + '=' + content.message;
+				udp_row+= '<td>' + topic + '=' + content.message;
+				
 				if( $("#topics_show_advanced").prop('checked') == true ) 
 					udp_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
 				udp_row+= '</td>\n';
 				
+				udp_row+= '<td>MQTT:\\i' + topic.replace("\\", "\\\\") + '=\\i\\v</td>';
+				
 				//udp_row+= '<td>' + content.message + '</td>\n';
 				udp_row+= '<td><div class="ui-grid-a"><div class="ui-block-a" style="width: 85%">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</div>';
 				if( $("#topics_show_advanced").prop('checked') == true ) {
-					udp_row+= '<div class="ui-block-b" style="width: 15%"><a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic + '" onclick="deleteTopic(this);"></a></div>';
+					udp_row+= '<div class="ui-block-b" style="width: 40px"><a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic + '" onclick="deleteTopic(this);"></a></div>';
 				}
 				udp_row+= '</div></td>\n';
 				udp_row+= '</tr>\n';

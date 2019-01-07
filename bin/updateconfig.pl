@@ -82,7 +82,7 @@ sub update_config
 		$changed++;
 		}
 	if(! defined $cfg->{Main}{brokeraddress}) { 
-		$cfg->{Main}{brokeraddress} = 'localhost'; 
+		$cfg->{Main}{brokeraddress} = 'localhost:1883'; 
 		LOGINF "Setting MQTT broker address to " . $cfg->{Main}{brokeraddress};
 		$changed++;
 		}
