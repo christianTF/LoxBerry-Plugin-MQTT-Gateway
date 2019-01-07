@@ -204,8 +204,8 @@ sub received
 	
 	LOGINF "$topic: $message";
 	
-	if( is_enabled($cfg->{Main}{expand_json}) and is_enabled($cfg->{Main}{use_http}) ) {
-		# Check if message is a json (only required if use_http is also enabled)
+	if( is_enabled($cfg->{Main}{expand_json}) ) {
+		# Check if message is a json
 		eval {
 			$contjson = decode_json($message);
 		};
