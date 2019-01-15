@@ -122,16 +122,24 @@ sub update_config
 	}
 	
 	# Create Mosquitto config and password
-	if(! -e '/etc/mosquitto/conf.d/mqttgateway.conf') { 
+	if( is_enabled($cfg->{Main}{enable_mosquitto}) ) { 
 		my $credobj = LoxBerry::JSON::JSONIO->new();
 		my $cred = $credobj->open(filename => $credfile);
 		my %Credentials;
-		$Credentials{brokeruser} = 'loxberry';
-		$Credentials{brokerpass} = generate(16);
+		
+		if( !defined $Credentials{brokeruser} ) {
+			$Credentials{brokeruser} = 'loxberry';
+			$Credentials{brokerpass} = generate(16);
+		}
+		
+		if( !defined $Credentials{brokerpsk} ) {
+			$Credentials{brokerpsk} = generate(40);
+		}
+		
 		$cred->{Credentials} = \%Credentials;
 		$credobj->write();
 		
-		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} enable_mosquitto=$cfg->{Main}{enable_mosquitto}`;
+		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} brokerpsk=$Credentials{brokerpsk} enable_mosquitto=$cfg->{Main}{enable_mosquitto}`;
 		
 		`sudo $lbpbindir/sudo/mosq_readconfig.sh`; 
 		LOGWARN "New Mosquitto configuration was created with a generated password.";

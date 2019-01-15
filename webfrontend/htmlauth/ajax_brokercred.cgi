@@ -9,6 +9,7 @@ use strict;
 
 require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
 
+$LoxBerry::JSON::JSONIO::DEBUG if (0); # Remove only used once message
 $LoxBerry::JSON::JSONIO::DEBUG = 1;
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
@@ -36,7 +37,7 @@ my $cred = $credobj->open(filename => $credfile);
 # print Dumper($cred);
 my $action = $q->{action} ? $q->{action} : "";
 if ($action eq "getcred") { getcred(); }
-elsif ($action eq "setcred") { setcred($q->{brokeruser}, $q->{brokerpass}, $q->{enable_mosquitto}); }
+elsif ($action eq "setcred") { setcred($q->{brokeruser}, $q->{brokerpass}, $q->{enable_mosquitto}, $q->{brokerpsk}); }
 else  { 
 	$response{message} = "The requested operation is not permitted.";
 	$response{error} = 1;
@@ -88,10 +89,13 @@ sub getcred
 
 sub setcred
 {
-	my ($brokeruser, $brokerpass, $enable_mosquitto) = @_;
+	my ($brokeruser, $brokerpass, $enable_mosquitto, $brokerpsk) = @_;
 	my %Credentials;
+	
 	$Credentials{brokeruser} =$brokeruser;
 	$Credentials{brokerpass} =$brokerpass;
+	$Credentials{brokerpsk} =$brokerpsk;
+
 	$cred->{Credentials} = \%Credentials;
 	$credobj->write();
 
@@ -103,6 +107,7 @@ sub setcred
 	
 		my $mosq_cfgfile = "$lbpconfigdir/mosquitto.conf";
 		my $mosq_passwdfile = "$lbpconfigdir/mosq_passwd";
+		my $mosq_pskfile = "$lbpconfigdir/mosq_psk";
 		
 		# Create and write config file
 		my $mosq_config;
@@ -110,6 +115,7 @@ sub setcred
 		$mosq_config = "# This file is directly managed by the MQTT-Gateway plugin.\n";
 		$mosq_config .= "# Do not change this file, as your changes will be lost on saving in the MQTT-Gateway webinterface.\n\n";
 		
+		# User and pass, or anonymous
 		if(!$brokeruser and !$brokerpass) {
 			# Anonymous when no credentials are provided
 			$mosq_config .= "allow_anonymous true\n";
@@ -118,6 +124,15 @@ sub setcred
 			$mosq_config .= "allow_anonymous false\n";
 			$mosq_config .= "password_file $mosq_passwdfile\n";
 		}
+		
+		# TLS listener
+		if ($Credentials{brokerpsk}) {
+			$mosq_config .= "listener 8883\n";
+			$mosq_config .= "use_identity_as_username false\n";
+			$mosq_config .= "psk_hint mqttgateway_psk\n";
+			$mosq_config .= "psk_file $mosq_pskfile\n";
+		}
+		
 		open(my $fh, '>', $mosq_cfgfile) or 
 		do {
 			$response{message} = "Could not open $mosq_cfgfile: $!";
@@ -138,6 +153,15 @@ sub setcred
 		}
 		`chown loxberry:loxberry $mosq_passwdfile`;
 		
+		# PSK file
+		open(my $pskfh, '>', $mosq_pskfile) or 
+		do {
+			$response{message} = "Could not open $mosq_pskfile: $!";
+			$response{error} = 1;
+		};
+		print $pskfh "loxberry:$Credentials{brokerpsk}\n";
+		close $pskfh;
+		
 		# HUP to re-read Mosquitto config
 		`sudo $lbpbindir/sudo/mosq_readconfig.sh`;
 		
@@ -157,4 +181,27 @@ sub response
 	);	
 	print encode_json(\%response);
 	exit($response{error});
+}
+
+
+#####################################################
+# Random Sub
+#####################################################
+sub generate {
+        my ($count) = @_;
+        my($zufall,@words,$more);
+
+        if($count =~ /^\d+$/){
+                $more = $count;
+        }else{
+                $more = 10;
+        }
+
+        @words = qw(A B C D E F G H I J K L M N O P Q R S T U V W X Y Z a b c d e f g h i j k l m n o p q r s t u v w x y z 0 1 2 3 4 5 6 7 8 9);
+
+        foreach (1..$more){
+                $zufall .= $words[int rand($#words+1)];
+        }
+
+        return($zufall);
 }
