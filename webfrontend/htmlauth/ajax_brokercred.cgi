@@ -127,8 +127,10 @@ sub setcred
 		
 		# TLS listener
 		if ($Credentials{brokerpsk}) {
+			$mosq_config .= "# TLS-PSK listener\n";
 			$mosq_config .= "listener 8883\n";
 			$mosq_config .= "use_identity_as_username false\n";
+			$mosq_config .= "tls_version tlsv1.2\n";
 			$mosq_config .= "psk_hint mqttgateway_psk\n";
 			$mosq_config .= "psk_file $mosq_pskfile\n";
 		}
@@ -161,6 +163,7 @@ sub setcred
 		};
 		print $pskfh "loxberry:$Credentials{brokerpsk}\n";
 		close $pskfh;
+		`chown loxberry:loxberry $mosq_pskfile`;
 		
 		# HUP to re-read Mosquitto config
 		`sudo $lbpbindir/sudo/mosq_readconfig.sh`;
