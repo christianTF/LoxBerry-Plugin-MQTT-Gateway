@@ -66,6 +66,9 @@ cp -f -r /tmp/$PTEMPDIR\_upgrade/config/$PDIR/* $LBHOMEDIR/config/plugins/$PDIR/
 echo "<INFO> Remove temporary folders"
 rm -f -r /tmp/$PTEMPDIR\_upgrade
 
+echo "<INFO> Linking Mosquitto log to log folder"
+ln -f -s /var/log/mosquitto/mosquitto.log $PLOG/
+
 echo "<INFO> Updating configuration"
 sudo $PBIN/updateconfig.pl
 

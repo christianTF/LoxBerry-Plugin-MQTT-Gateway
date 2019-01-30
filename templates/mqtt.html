@@ -111,6 +111,15 @@
 			<!-- <p class="hint">Use a safe password! <b>Double</b>click the dice to generate a new password: <img ondblclick="pwRandomize()" src="images/dice_30_30.png"></p> -->
 			<p class="hint">Use a safe password! Click the dice to open a funny password generator: <a href="https://www.dinopass.com/" target="_blank"><img src="images/dice_30_30.png" alt="Dice"></a></p>
 		</div>
+		
+		<div data-role="fieldcontain" id="brokerpsk_block" style="display:none">
+			<label for="Credentials.brokerpsk">Broker Pre-Shared Key (TLS-PSK)</label>
+			<input name="Credentials.brokerpsk" id="Credentials.brokerpsk" type="text" readonly="readonly" />
+			<!-- <p class="hint">Use a safe password! <b>Double</b>click the dice to generate a new password: <img ondblclick="pwRandomize()" src="images/dice_30_30.png"></p> -->
+			<p class="hint">This is the pre-shared key for TLS encryption. To use an encrypted broker connection on your devices, use user, pass and psk, connecting to port 8883. To keep the key save, you cannot change the psk here.</p>
+		</div>
+		
+		
 		<p>If you <b>change</b> user and/or password on the local installation, you have to <b>reconfigure</b> all connected devices too. Start with a safe password to avoid security issues. Store user and pass a second time on a secure place.</p>  
 	
 	</div>
@@ -432,6 +441,18 @@
 <TMPL_IF FORM_LOGS>
 	<!-- Form LOGS -->
 	<TMPL_VAR loglist_html>
+	
+	<div data-role='collapsible' id='coll_package_mosquitto' data-content-theme='true' data-collapsed='false' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
+		<h2 class='ui-bar ui-bar-a ui-corner-all' id='package_mqttgateway_mosquitto'>Mosquitto Log</h2>
+		<table style='width:100%; padding:8px; border:1px solid #ddd; border-collapse: collapse;'>
+			<tr>
+				<td>mosquitto.log</td>
+				<td></td>
+				<td><a data-role='button' href='/admin/system/tools/logfile.cgi?logfile=%2Fopt%2Floxberry%2Flog%2Fplugins%2Fmqttgateway%2Fmosquitto.log&header=html&format=template&only=once' target='_blank' data-inline='true' data-mini='true' data-icon='action'>Logfile</a></td>
+				<td></td>
+			</tr>
+		</table>
+	</div>
 	<!-- /Form LOGS -->
 </TMPL_IF>
 
@@ -531,6 +552,12 @@
 				cfg.Main[idarray[1]] = $(this).is(":checked");
 				if(id == "Main.enable_mosquitto") 
 					creds_changed = true;
+					if($(this).is(":checked")) 
+						$("#brokerpsk_block").fadeIn();
+					else
+						$("#brokerpsk_block").fadeOut();
+					
+					
 			} else {
 				// console.log(idarray[0], idarray[1], $("#Main\\."+idarray[1]).val());
 			
@@ -662,8 +689,16 @@
 					$("#Credentials\\.brokeruser").val(data.Credentials.brokeruser);
 				if(data.Credentials.brokerpass)
 					$("#Credentials\\.brokerpass").val(data.Credentials.brokerpass);
+				if(data.Credentials.brokerpsk)
+					$("#Credentials\\.brokerpsk").val(data.Credentials.brokerpsk);
+
 			}
 			$("#credentials_block").fadeIn();
+			if( $("#Main\\.enable_mosquitto").is(":checked") ) 
+				$("#brokerpsk_block").fadeIn();
+			else
+				$("#brokerpsk_block").fadeOut();
+			
 			
 		})
 		
