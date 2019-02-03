@@ -10,7 +10,7 @@ use strict;
 require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
 
 $LoxBerry::JSON::JSONIO::DEBUG if (0); # Remove only used once message
-$LoxBerry::JSON::JSONIO::DEBUG = 1;
+#$LoxBerry::JSON::JSONIO::DEBUG = 1;
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
 my $credfile = "$lbpconfigdir/cred.json";
@@ -94,8 +94,12 @@ sub setcred
 	
 	$Credentials{brokeruser} =$brokeruser;
 	$Credentials{brokerpass} =$brokerpass;
-	$Credentials{brokerpsk} =$brokerpsk;
-
+	if (defined $brokerpsk) {
+		$Credentials{brokerpsk} = $brokerpsk;
+	} elsif (defined $cred->{Credentials}->{brokerpsk}) {
+		$Credentials{brokerpsk} = $cred->{Credentials}->{brokerpsk};
+	}
+	
 	$cred->{Credentials} = \%Credentials;
 	$credobj->write();
 
@@ -129,7 +133,7 @@ sub setcred
 		if ($Credentials{brokerpsk}) {
 			$mosq_config .= "# TLS-PSK listener\n";
 			$mosq_config .= "listener 8883\n";
-			$mosq_config .= "use_identity_as_username false\n";
+			$mosq_config .= "use_identity_as_username true\n";
 			$mosq_config .= "tls_version tlsv1.2\n";
 			$mosq_config .= "psk_hint mqttgateway_psk\n";
 			$mosq_config .= "psk_file $mosq_pskfile\n";
@@ -186,6 +190,36 @@ sub response
 	exit($response{error});
 }
 
+
+################################################
+# Generate a key in hex string representation
+# Parameter is keylength in bit
+################################################
+sub generate_hexkey
+{
+
+	my ($keybits) = @_;
+	
+	if (! $keybits or $keybits < 40) {
+		$keybits = 128;
+	}
+	
+	my $keybytes = int($keybits/8+0.5);
+	# print STDERR "Keybits: $keybits Keybytes: $keybytes\n";
+	my $hexstr = "";
+	
+	for(1...$keybytes) { 
+		my $rand = int(rand(256));
+		$hexstr .= sprintf('%02X', $rand);
+		# print STDERR "Rand: $rand \tHEX: $hexstr\n";
+	}
+	
+	if ( length($hexstr) < ($keybytes*2) ) {
+		return undef;
+	}
+	return $hexstr;
+
+}
 
 #####################################################
 # Random Sub
