@@ -1,2 +1,2 @@
 #!/bin/bash
-ln -s REPLACELBPCONFIGDIR/mosquitto.conf /etc/mosquitto/conf.d/mqttgateway.conf
+ln -f -s REPLACELBPCONFIGDIR/mosquitto.conf /etc/mosquitto/conf.d/mqttgateway.conf

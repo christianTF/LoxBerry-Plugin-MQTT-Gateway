@@ -127,23 +127,32 @@ sub update_config
 		my $cred = $credobj->open(filename => $credfile);
 		my %Credentials;
 		
-		if( !defined $Credentials{brokeruser} ) {
+		if( !defined $cred->{Credentials}->{brokeruser} ) {
 			$Credentials{brokeruser} = 'loxberry';
 			$Credentials{brokerpass} = generate(16);
+			LOGWARN "New Mosquitto configuration was created with a generated password.";
+			LOGWARN "Check the plugin settings to see and change your new credentials.";
+		} else {
+			$Credentials{brokeruser} = $cred->{Credentials}->{brokeruser};
+			$Credentials{brokerpass} = $cred->{Credentials}->{brokerpass};
 		}
 		
-		if( !$Credentials{brokerpsk} or $Credentials{brokerpsk} == "null") {
+		if( !$cred->{Credentials}->{brokerpsk} or $cred->{Credentials}->{brokerpsk} eq "null") {
 			$Credentials{brokerpsk} = generate_hexkey(240);
+			LOGWARN "New 240-bit TLS Pre-Shared key was created.";
+		} else {
+			$Credentials{brokerpsk} = $cred->{Credentials}->{brokerpsk};
 		}
 		
 		$cred->{Credentials} = \%Credentials;
 		$credobj->write();
 		
+		print STDERR "COMMAND: $lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} brokerpsk=$Credentials{brokerpsk} enable_mosquitto=$cfg->{Main}{enable_mosquitto}\n";
+		
 		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} brokerpsk=$Credentials{brokerpsk} enable_mosquitto=$cfg->{Main}{enable_mosquitto}`;
 		
 		`sudo $lbpbindir/sudo/mosq_readconfig.sh`; 
-		LOGWARN "New Mosquitto configuration was created with a generated password.";
-		LOGWARN "Check the plugin settings to see and change your new credentials.";
+		
 	}
 	
 	$json->write();

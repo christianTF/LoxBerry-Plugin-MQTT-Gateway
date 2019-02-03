@@ -9,7 +9,6 @@ use strict;
 
 require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
 
-$LoxBerry::JSON::JSONIO::DEBUG if (0); # Remove only used once message
 #$LoxBerry::JSON::JSONIO::DEBUG = 1;
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
@@ -92,8 +91,8 @@ sub setcred
 	my ($brokeruser, $brokerpass, $enable_mosquitto, $brokerpsk) = @_;
 	my %Credentials;
 	
-	$Credentials{brokeruser} =$brokeruser;
-	$Credentials{brokerpass} =$brokerpass;
+	$Credentials{brokeruser} = $brokeruser;
+	$Credentials{brokerpass} = $brokerpass;
 	if (defined $brokerpsk) {
 		$Credentials{brokerpsk} = $brokerpsk;
 	} elsif (defined $cred->{Credentials}->{brokerpsk}) {
@@ -107,6 +106,8 @@ sub setcred
 		%response = (%response, %$cred);
 	}
 
+	# print STDERR "enable_mosquitto: " . is_enabled($enable_mosquitto) . "\n";
+	
 	if( is_enabled($enable_mosquitto) ) {
 	
 		my $mosq_cfgfile = "$lbpconfigdir/mosquitto.conf";
@@ -119,6 +120,8 @@ sub setcred
 		$mosq_config = "# This file is directly managed by the MQTT-Gateway plugin.\n";
 		$mosq_config .= "# Do not change this file, as your changes will be lost on saving in the MQTT-Gateway webinterface.\n\n";
 		
+		$mosq_config .= "port 1883\n";
+			
 		# User and pass, or anonymous
 		if(!$brokeruser and !$brokerpass) {
 			# Anonymous when no credentials are provided
