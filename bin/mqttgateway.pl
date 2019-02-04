@@ -174,6 +174,13 @@ sub udpin
 		LOGDEB "Publish (retain): '$udptopic'='$udpmessage'";
 		eval {
 			$mqtt->retain($udptopic, $udpmessage);
+			
+			# This code may only work, when the topic is not subscribed anymore (as the gateway receives the publish itself)
+			if(!$udpmessage) {
+				LOGDEB "Delete $udptopic from memory because of empty message";
+				delete $relayed_topics_http{$udptopic};
+				delete $relayed_topics_udp{$udptopic};
+			}
 		};
 		if($@) {
 			LOGERR "Catched exception on publishing (retain) to MQTT: $!";
@@ -282,7 +289,22 @@ sub received
 		}
 	}
 	
+	# Split cached and non-cached data
+	my %sendhash_noncached;
+	my %sendhash_cached;
+	foreach my $sendtopic (keys %sendhash) {
+		my $sendtopic_underlined = $sendtopic;
+		$sendtopic_underlined =~ s/\//_/g;
+		if (exists $cfg->{Noncached}->{$sendtopic_underlined}) {
+			LOGDEB "   $sendtopic is non-cached";
+			$sendhash_noncached{$sendtopic} = $sendhash{$sendtopic};
+		} else {
+			LOGDEB "   $sendtopic is cached";
+			$sendhash_cached{$sendtopic} = $sendhash{$sendtopic};
+		}	
+	}
 	
+	# Send via UDP
 	if( is_enabled($cfg->{Main}{use_udp}) ) {
 		if( $cfg->{Main}{msno} and $cfg->{Main}{udpport} and $miniservers{$cfg->{Main}{msno}}) {
 			#LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", $topic, $message);
@@ -290,33 +312,55 @@ sub received
 				$relayed_topics_udp{$sendtopic}{timestamp} = time;
 				$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
 				$relayed_topics_udp{$sendtopic}{originaltopic} = $topic;
-				
 				LOGDEB "  UDP: Sending as $sendtopic to MS No. " . $cfg->{Main}{msno};
 			}	
-			my $udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash);
+			
+			my $udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
 			if (!$udpresp) {
-				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver.";
+				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via non-cached api).";
+				$health_state{udpsend}{error} = 1;
+				$health_state{udpsend}{count} += 1;
+			}
+			
+			my $udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_cached);
+			if (!$udpresp) {
+				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via cached api).";
 				$health_state{udpsend}{error} = 1;
 				$health_state{udpsend}{count} += 1;
 			}
 		}
 	}
+	# Send via HTTP
 	if( is_enabled($cfg->{Main}{use_http}) and $miniservers{$cfg->{Main}{msno}} ) {
-		foreach my $sendtopic (keys %sendhash) {
+		foreach my $sendtopic (keys %sendhash_cached) {
 			my $newtopic = $sendtopic;
 			$newtopic =~ s/\//_/g;
-			$sendhash{$newtopic} = delete $sendhash{$sendtopic};
+			$sendhash_cached{$newtopic} = delete $sendhash_cached{$sendtopic};
 		}
-		foreach my $sendtopic (keys %sendhash) {
+		foreach my $sendtopic (keys %sendhash_noncached) {
+			my $newtopic = $sendtopic;
+			$newtopic =~ s/\//_/g;
+			$sendhash_noncached{$newtopic} = delete $sendhash_noncached{$sendtopic};
+		}
+		
+		foreach my $sendtopic (keys %sendhash_cached) {
 			$relayed_topics_http{$sendtopic}{timestamp} = time;
-			$relayed_topics_http{$sendtopic}{message} = $sendhash{$sendtopic};
+			$relayed_topics_http{$sendtopic}{message} = $sendhash_cached{$sendtopic};
 			$relayed_topics_http{$sendtopic}{originaltopic} = $topic;
-			LOGDEB "  HTTP: Sending to input $sendtopic: $sendhash{$sendtopic}";
+			LOGDEB "  HTTP: Sending to input $sendtopic (using cache): $sendhash_cached{$sendtopic}";
 		}
+		foreach my $sendtopic (keys %sendhash_noncached) {
+			$relayed_topics_http{$sendtopic}{timestamp} = time;
+			$relayed_topics_http{$sendtopic}{message} = $sendhash_noncached{$sendtopic};
+			$relayed_topics_http{$sendtopic}{originaltopic} = $topic;
+			LOGDEB "  HTTP: Sending to input $sendtopic (noncached): $sendhash_noncached{$sendtopic}";
+		}
+
 		#LOGDEB "  HTTP: Sending as $topic to MS No. " . $cfg->{Main}{msno};
 		#LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
 		
-		my $httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash);
+		my $httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
+		my $httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
 		
 		# if (!$httpresp) {
 			# LOGDEB "  HTTP: Virtual input not available?";
