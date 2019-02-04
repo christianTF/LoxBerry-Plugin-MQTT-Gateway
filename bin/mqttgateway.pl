@@ -549,6 +549,7 @@ sub save_relayed_states
 
 	$relayjson->{udp} = \%relayed_topics_udp;
 	$relayjson->{http} = \%relayed_topics_http;
+	$relayjson->{Noncached} = $cfg->{Noncached};
 	$relayjson->{health_state} = \%health_state;
 	$relayjsonobj->write();
 	undef $relayjsonobj;

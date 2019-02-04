@@ -245,6 +245,7 @@
 	<script>
 		
 		var updateTopicsRunning = 0;
+		var lastresp = "";
 		
 		$( document ).ready(function() {
 			restoreWindow();
@@ -255,6 +256,7 @@
 			http_table_skel();
 			udp_table_skel();
 			updateTopics();
+			
 			setInterval(updateTopics, 1000);
 		});
 
@@ -299,6 +301,9 @@
 				return; }
 				generate_http_table(resp);
 				generate_udp_table(resp);
+				$(".disablecache").bind( "change", function(event, ui) {
+					checkbox_disablecache(event);
+				});
 				
 		  })
 		  .fail(function(resp) {
@@ -349,6 +354,8 @@
 			$("#http_table").find("tr:gt(0)").remove();
 			
 			Object.entries(resp.http).map(([topic, content]) => {
+				//console.log(resp);
+				
 				var d = new Date(content.timestamp*1000); 
 				http_count++;
 				http_row = '<tr>\n';
@@ -356,7 +363,20 @@
 				if( $("#topics_show_advanced").prop('checked') == true ) 
 					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
 				http_row+= '</td>\n';
-				http_row+= '<td>' + content.message + '</td>\n';
+								
+				http_row+= '<td>' + content.message; 
+				if( $("#topics_show_advanced").prop('checked') == true ) {
+					
+					var uncached;
+					if( topic.replace(/\//g, "_") in resp.Noncached ) {
+						uncached = "checked";
+					// console.log(topic, "is uncached");
+					}
+				
+					http_row+= '\n<label><input type="checkbox" name="http_cache_disabled_'+topic+'" id="http_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached +'>Disable cache</label>';
+				}
+				http_row+= '</td>\n';
+				
 				http_row+= '<td><div class="ui-grid-a"><div class="ui-block-a" style="width: 85%">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</div>';
 				if( $("#topics_show_advanced").prop('checked') == true ) {
 					http_row+= '<div class="ui-block-b" style="width: 15%"><a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic + '" onclick="deleteTopic(this);"></a></div>';
@@ -365,9 +385,12 @@
 				http_row+= '</div></td>\n';
 				http_row+= '</tr>\n';
 				$("#http_table tbody").append(http_row);
+				
+				
 			});
-						
+			$("#http_table").trigger('create');
 			$("#http_table").filterable('refresh');
+			
 			$("#http_count").text(http_count);
 		}
 		
@@ -387,7 +410,19 @@
 					udp_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
 				udp_row+= '</td>\n';
 				
-				udp_row+= '<td>MQTT:\\i' + topic.replace("\\", "\\\\") + '=\\i\\v</td>';
+				udp_row+= '<td>MQTT:\\i' + topic.replace("\\", "\\\\") + '=\\i\\v';
+				
+				if( $("#topics_show_advanced").prop('checked') == true ) {
+					var uncached;
+					if( topic.replace(/\//g, "_") in resp.Noncached ) {
+						uncached = "checked";
+					// console.log(topic, "is uncached");
+					}
+					
+					udp_row+= '\n<label><input type="checkbox" name="udp_cache_disabled_'+topic+'" id="udp_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached + '>Disable cache</label>';
+				}
+				udp_row+= '</td>'
+				
 				
 				//udp_row+= '<td>' + content.message + '</td>\n';
 				udp_row+= '<td><div class="ui-grid-a"><div class="ui-block-a" style="width: 85%">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</div>';
@@ -399,6 +434,7 @@
 				$("#udp_table tbody").append(udp_row);
 			});
 						
+			$("#udp_table").trigger('create');
 			$("#udp_table").filterable('refresh');
 			$("#udp_count").text(udp_count);
 		}
@@ -429,6 +465,37 @@
 		
 		
 		} 
+		
+		function checkbox_disablecache(event) {
+			var cachetarget;
+			if (event.currentTarget.id.startsWith("http_cache_disabled_") == true)
+				cachetarget = event.currentTarget.id.slice(20).replace(/\//g, '\_');
+			else if (event.currentTarget.id.startsWith("udp_cache_disabled_") == true)
+				cachetarget = event.currentTarget.id.slice(19).replace(/\//g, '\_');
+			else
+				return;
+			
+			// var cachetarget = event.currentTarget.id.replace(/\//g, '\_');
+			var is_checked = event.currentTarget.checked;
+			console.log("checkbox_disablecache", cachetarget, "Checked", is_checked);
+			
+			$.post( 'index.cgi', {
+				ajax: 'disablecache',
+				disablecache: is_checked,
+				topic: cachetarget })
+			.done(function(resp) {
+				console.log( "ajax_post", "success", resp );
+				return; 
+			});
+		
+		 
+		
+		
+		
+		
+		
+		
+		};
 		
 	</script>
 

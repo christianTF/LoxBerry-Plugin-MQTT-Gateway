@@ -21,11 +21,13 @@ if( $q->{ajax} ) {
 	require Time::HiRes;
 	my %response;
 	ajax_header();
+	# GetPids
 	if( $q->{ajax} eq "getpids" ) {
 		pids();
 		$response{pids} = \%pids;
 		print JSON::encode_json(\%response);
 	}
+	# Restart Gateway
 	if( $q->{ajax} eq "restartgateway" ) {
 		pkill('mqttgateway.pl');
 		`cd $lbpbindir ; $lbpbindir/mqttgateway.pl > /dev/null 2>&1 &`;
@@ -33,6 +35,7 @@ if( $q->{ajax} ) {
 		$response{pids} = \%pids;
 		print JSON::encode_json(\%response);
 	}
+	# Relayed topics
 	if( $q->{ajax} eq "relayed_topics" ) {
 		
 		if (defined $q->{udpinport} and $q->{udpinport} ne "0") {
@@ -51,7 +54,7 @@ if( $q->{ajax} ) {
 		my $datafile = "/dev/shm/mqttgateway_topics.json";
 		print LoxBerry::System::read_file($datafile);
 	}
-	
+	# Delete topic
 	if( $q->{ajax} eq "retain" ) {
 		
 		if (defined $q->{udpinport} and $q->{udpinport} ne "0") {
@@ -69,6 +72,25 @@ if( $q->{ajax} ) {
 		
 		my $datafile = "/dev/shm/mqttgateway_topics.json";
 		print LoxBerry::System::read_file($datafile);
+	}
+	
+	if( $q->{ajax} eq "disablecache" ) {
+		require LoxBerry::JSON;
+		my $json = LoxBerry::JSON->new();
+		my $cfg = $json->open(filename => $cfgfile);
+		if (!$cfg) {
+			exit;
+		}
+		
+		print STDERR "Cache-related topic: " . $q->{topic} . " is now " . $q->{disablecache} . "\n";
+		if(!is_enabled($q->{disablecache})) {
+			delete $cfg->{Noncached}->{$q->{topic}};
+		} else {
+			$cfg->{Noncached}->{$q->{topic}} = $q->{disablecache};
+		}
+		$json->write();
+		
+	
 	}
 	
 	exit;
