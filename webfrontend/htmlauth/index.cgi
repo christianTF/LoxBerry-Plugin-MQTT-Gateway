@@ -89,9 +89,28 @@ if( $q->{ajax} ) {
 			$cfg->{Noncached}->{$q->{topic}} = $q->{disablecache};
 		}
 		$json->write();
-		
 	
 	}
+
+	if( $q->{ajax} eq "resetAfterSend" ) {
+		require LoxBerry::JSON;
+		my $json = LoxBerry::JSON->new();
+		my $cfg = $json->open(filename => $cfgfile);
+		if (!$cfg) {
+			exit;
+		}
+		
+		print STDERR "Reset-After-Send topic: " . $q->{topic} . " is now " . $q->{resetAfterSend} . "\n";
+		if(!is_enabled($q->{resetAfterSend})) {
+			delete $cfg->{resetAfterSend}->{$q->{topic}};
+		} else {
+			$cfg->{resetAfterSend}->{$q->{topic}} = $q->{resetAfterSend};
+		}
+		$json->write();
+	
+	}
+
+
 	
 	exit;
 

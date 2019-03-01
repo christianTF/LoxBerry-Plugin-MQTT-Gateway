@@ -245,7 +245,6 @@
 	<script>
 		
 		var updateTopicsRunning = 0;
-		var lastresp = "";
 		
 		$( document ).ready(function() {
 			restoreWindow();
@@ -303,6 +302,9 @@
 				generate_udp_table(resp);
 				$(".disablecache").bind( "change", function(event, ui) {
 					checkbox_disablecache(event);
+				});
+				$(".resetAfterSend").bind( "change", function(event, ui) {
+					checkbox_resetAfterSend(event);
 				});
 				
 		  })
@@ -368,12 +370,19 @@
 				if( $("#topics_show_advanced").prop('checked') == true ) {
 					
 					var uncached;
-					if( topic.replace(/\//g, "_") in resp.Noncached ) {
+					if( resp.Noncached !== null && topic.replace(/\//g, "_") in resp.Noncached ) {
 						uncached = "checked";
 					// console.log(topic, "is uncached");
 					}
+					http_row+= '<fieldset data-role="controlgroup" data-type="horizontal"><label><input type="checkbox" name="http_cache_disabled_'+topic+'" id="http_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached +'>Disable cache</label>';
 				
-					http_row+= '\n<label><input type="checkbox" name="http_cache_disabled_'+topic+'" id="http_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached +'>Disable cache</label>';
+					var resetAfterSend;
+					if( resp.resetAfterSend !== null && topic.replace(/\//g, "_") in resp.resetAfterSend ) {
+						resetAfterSend = "checked";
+					// console.log(topic, "is reset after send");
+					}
+					http_row+= '<label><input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label></fieldset>';
+								
 				}
 				http_row+= '</td>\n';
 				
@@ -414,12 +423,20 @@
 				
 				if( $("#topics_show_advanced").prop('checked') == true ) {
 					var uncached;
-					if( topic.replace(/\//g, "_") in resp.Noncached ) {
+					if( resp.Noncached !== null && topic.replace(/\//g, "_") in resp.Noncached ) {
 						uncached = "checked";
 					// console.log(topic, "is uncached");
 					}
 					
-					udp_row+= '\n<label><input type="checkbox" name="udp_cache_disabled_'+topic+'" id="udp_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached + '>Disable cache</label>';
+					udp_row+= '<fieldset data-role="controlgroup" data-type="horizontal"><label><input type="checkbox" name="udp_cache_disabled_'+topic+'" id="udp_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached + '>Disable cache</label>';
+				
+					var resetAfterSend;
+					if( resp.resetAfterSend !== null && topic.replace(/\//g, "_") in resp.resetAfterSend ) {
+						resetAfterSend = "checked";
+					// console.log(topic, "is reset after send");
+					}
+					udp_row+= '<label><input type="checkbox" name="udp_reset_after_send_'+topic+'" id="udp_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label></fieldset>';
+								
 				}
 				udp_row+= '</td>'
 				
@@ -487,14 +504,29 @@
 				console.log( "ajax_post", "success", resp );
 				return; 
 			});
+		};
 		
-		 
-		
-		
-		
-		
-		
-		
+		function checkbox_resetAfterSend(event) {
+			var checkboxtarget;
+			if (event.currentTarget.id.startsWith("http_reset_after_send_") == true)
+				checkboxtarget = event.currentTarget.id.slice(22).replace(/\//g, '\_');
+			else if (event.currentTarget.id.startsWith("udp_reset_after_send_") == true)
+				checkboxtarget = event.currentTarget.id.slice(21).replace(/\//g, '\_');
+			else
+				return;
+			
+			// var checkboxtarget = event.currentTarget.id.replace(/\//g, '\_');
+			var is_checked = event.currentTarget.checked;
+			console.log("checkbox_reset_after_send", checkboxtarget, "Checked", is_checked);
+			
+			$.post( 'index.cgi', {
+				ajax: 'resetAfterSend',
+				resetAfterSend: is_checked,
+				topic: checkboxtarget })
+			.done(function(resp) {
+				console.log( "ajax_post", "success", resp );
+				return; 
+			});
 		};
 		
 	</script>
