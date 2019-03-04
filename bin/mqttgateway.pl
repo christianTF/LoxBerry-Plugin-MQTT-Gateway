@@ -357,6 +357,12 @@ sub received
 			$newtopic =~ s/\//_/g;
 			$sendhash_noncached{$newtopic} = delete $sendhash_noncached{$sendtopic};
 		}
+		# Parse topics to replace / with _ (reset-after-send)
+		foreach my $sendtopic (keys %sendhash_resetaftersend) {
+			my $newtopic = $sendtopic;
+			$newtopic =~ s/\//_/g;
+			$sendhash_resetaftersend{$newtopic} = delete $sendhash_resetaftersend{$sendtopic};
+		}
 		
 		# Create overview data (cached)
 		foreach my $sendtopic (keys %sendhash_cached) {
