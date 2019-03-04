@@ -290,14 +290,22 @@ sub received
 	}
 	
 	# Split cached and non-cached data
+	# Also "Reset after send" data imlicitely are non-cached
 	my %sendhash_noncached;
 	my %sendhash_cached;
+	my %sendhash_resetaftersend;
+	
 	foreach my $sendtopic (keys %sendhash) {
 		my $sendtopic_underlined = $sendtopic;
 		$sendtopic_underlined =~ s/\//_/g;
-		if (exists $cfg->{Noncached}->{$sendtopic_underlined}) {
+		if (exists $cfg->{Noncached}->{$sendtopic_underlined} or exists $cfg->{resetAfterSend}->{$sendtopic_underlined}) {
 			LOGDEB "   $sendtopic is non-cached";
 			$sendhash_noncached{$sendtopic} = $sendhash{$sendtopic};
+			# Create a list of reset-after-send topics, with value 0
+			if(exists $cfg->{resetAfterSend}->{$sendtopic_underlined}) {
+				$sendhash_resetaftersend{$sendtopic} = "0";
+			}
+		
 		} else {
 			LOGDEB "   $sendtopic is cached";
 			$sendhash_cached{$sendtopic} = $sendhash{$sendtopic};
@@ -315,6 +323,7 @@ sub received
 				LOGDEB "  UDP: Sending as $sendtopic to MS No. " . $cfg->{Main}{msno};
 			}	
 			
+			# Send uncached
 			my $udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
 			if (!$udpresp) {
 				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via non-cached api).";
@@ -322,6 +331,10 @@ sub received
 				$health_state{udpsend}{count} += 1;
 			}
 			
+			# Send 0 for Reset-after-send
+			my $udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
+			
+			# Send cached
 			my $udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_cached);
 			if (!$udpresp) {
 				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via cached api).";
@@ -332,23 +345,27 @@ sub received
 	}
 	# Send via HTTP
 	if( is_enabled($cfg->{Main}{use_http}) and $miniservers{$cfg->{Main}{msno}} ) {
+		# Parse topics to replace / with _ (cached)
 		foreach my $sendtopic (keys %sendhash_cached) {
 			my $newtopic = $sendtopic;
 			$newtopic =~ s/\//_/g;
 			$sendhash_cached{$newtopic} = delete $sendhash_cached{$sendtopic};
 		}
+		# Parse topics to replace / with _ (non-cached)
 		foreach my $sendtopic (keys %sendhash_noncached) {
 			my $newtopic = $sendtopic;
 			$newtopic =~ s/\//_/g;
 			$sendhash_noncached{$newtopic} = delete $sendhash_noncached{$sendtopic};
 		}
 		
+		# Create overview data (cached)
 		foreach my $sendtopic (keys %sendhash_cached) {
 			$relayed_topics_http{$sendtopic}{timestamp} = time;
 			$relayed_topics_http{$sendtopic}{message} = $sendhash_cached{$sendtopic};
 			$relayed_topics_http{$sendtopic}{originaltopic} = $topic;
 			LOGDEB "  HTTP: Sending to input $sendtopic (using cache): $sendhash_cached{$sendtopic}";
 		}
+		# Create overview data (non-cached)
 		foreach my $sendtopic (keys %sendhash_noncached) {
 			$relayed_topics_http{$sendtopic}{timestamp} = time;
 			$relayed_topics_http{$sendtopic}{message} = $sendhash_noncached{$sendtopic};
@@ -361,6 +378,7 @@ sub received
 		
 		my $httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
 		my $httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
+		my $httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno}, %sendhash_resetaftersend);
 		
 		# if (!$httpresp) {
 			# LOGDEB "  HTTP: Virtual input not available?";
