@@ -283,7 +283,7 @@ sub received
 	# User defined conversion
 	if ( %conversions ) {
 		foreach my $sendtopic (keys %sendhash) {
-			if( defined $conversions{ $sendhash{$sendtopic} } ) {
+			if( defined $conversions{ trim($sendhash{$sendtopic}) } ) {
 				$sendhash{$sendtopic} = $conversions{ $sendhash{$sendtopic} };
 			}
 		}
