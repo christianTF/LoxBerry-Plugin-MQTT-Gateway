@@ -323,8 +323,10 @@ sub received
 				LOGDEB "  UDP: Sending as $sendtopic to MS No. " . $cfg->{Main}{msno};
 			}	
 			
+			my $udpresp;
+			
 			# Send uncached
-			my $udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
+			$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
 			if (!$udpresp) {
 				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via non-cached api).";
 				$health_state{udpsend}{error} = 1;
@@ -332,10 +334,10 @@ sub received
 			}
 			
 			# Send 0 for Reset-after-send
-			my $udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
+			$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
 			
 			# Send cached
-			my $udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_cached);
+			$udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_cached);
 			if (!$udpresp) {
 				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via cached api).";
 				$health_state{udpsend}{error} = 1;
@@ -382,9 +384,10 @@ sub received
 		#LOGDEB "  HTTP: Sending as $topic to MS No. " . $cfg->{Main}{msno};
 		#LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
 		
-		my $httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
-		my $httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
-		my $httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno}, %sendhash_resetaftersend);
+		my $httpresp;
+		$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
+		$httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
+		$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno}, %sendhash_resetaftersend);
 		
 		# if (!$httpresp) {
 			# LOGDEB "  HTTP: Virtual input not available?";
