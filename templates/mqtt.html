@@ -245,6 +245,9 @@
 	<script>
 		
 		var updateTopicsRunning = 0;
+		var currentElementCount = 0;
+		var refreshInterval = 1000;
+		var intervalID;
 		
 		$( document ).ready(function() {
 			restoreWindow();
@@ -264,8 +267,6 @@
 			http_table_skel();
 			udp_table_skel();
 			updateTopics();
-			
-			setInterval(updateTopics, 1000);
 		});
 
 		function storeWindow (name, pos) 
@@ -299,22 +300,45 @@
 			if (cfg) udpinport = cfg.Main.udpinport;
 			
 			updateTopicsRunning = 1;
+			
+			// The refresh interval is dependent to the number of elements
+			newRefreshInterval = calcInterval();
+			// console.log("CalcInterval:", newRefreshInterval, "intervalID:", intervalID);
+			if ( intervalID === undefined ) {
+				console.log("Refresh interval set to", refreshInterval);
+				intervalID = setInterval(updateTopics, refreshInterval);
+			} else if ( newRefreshInterval != refreshInterval ) {
+				console.log("Old refreshInterval", refreshInterval, "New refreshInterval", newRefreshInterval);
+				console.log("Refreh interval updated to", newRefreshInterval);
+				refreshInterval = newRefreshInterval;
+				clearInterval(intervalID);
+				intervalID = setInterval(updateTopics, refreshInterval);
+			}
+			
+			console.log(logtime(), "RELAYED_TOPICS START Request");
 			$.post( 'index.cgi', {
 				ajax: 'relayed_topics',
 				udpinport: udpinport })
 			.done(function(resp) {
+				console.log(logtime(), "RELAYED_TOPICS DONE Request");
+			
 				// console.log( "ajax_post", "success", resp );
 				if (getSelectedText()) {
 					console.log("Text is selected");
 				return; }
+				console.log(logtime(), "RELAYED_TOPICS Generate_http_table");
 				generate_http_table(resp);
+				console.log(logtime(), "RELAYED_TOPICS Generate_udp_table");
 				generate_udp_table(resp);
+				console.log(logtime(), "RELAYED_TOPICS Bind buttons");
+				
 				$(".disablecache").bind( "change", function(event, ui) {
 					checkbox_disablecache(event);
 				});
 				$(".resetAfterSend").bind( "change", function(event, ui) {
 					checkbox_resetAfterSend(event);
 				});
+				console.log(logtime(), "RELAYED_TOPICS FINISHED");
 				
 		  })
 		  .fail(function(resp) {
@@ -367,10 +391,11 @@
 			$("#http_count").text(http_count);
 			
 			if ( $("#coll_mqtthttp").hasClass('ui-collapsible-collapsed') ) {
-				console.log("HTTP is collapsed - no need to update");
+				// console.log("HTTP is collapsed - no need to update");
 				return;
 			}
 			
+			currentElementCount = http_count;
 			
 			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
 			$("#http_table > tbody").empty();
@@ -416,7 +441,7 @@
 				
 				
 			});
-			$("#http_table").trigger('create');
+			// $("#http_table").trigger('create');
 			$("#http_table").filterable('refresh');
 		}
 		
@@ -429,9 +454,11 @@
 			$("#udp_count").text(udp_count);
 
 			if ( $("#coll_mqttudp").hasClass('ui-collapsible-collapsed') ) {
-				console.log("UDP is collapsed - no need to update");
+				// console.log("UDP is collapsed - no need to update");
 				return;
 			}
+			
+			currentElementCount = udp_count;
 			
 			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
 			
@@ -556,6 +583,26 @@
 			});
 		};
 		
+		function calcInterval() {
+			interval = 1000;
+			if ( currentElementCount > 0 ) {
+				interval = currentElementCount/200*1000;
+				if ( interval < 1000 ) 
+					interval = 1000;
+				else if ( interval > 10000 ) 
+					interval = 10000;
+			}
+			return interval;
+		}
+	
+		function logtime() {
+		  var d = new Date();
+		  var sec = d.getSeconds();
+		  var ms = d.getMilliseconds();
+		  return(sec+"."+ms);
+		}
+
+	
 	</script>
 
 	<!-- /Form TOPICS -->
@@ -836,9 +883,7 @@
 		
 	});
 
-	
-	
-	
+
 	
 	function update_pids() 
 	{
