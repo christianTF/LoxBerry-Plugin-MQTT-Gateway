@@ -373,7 +373,7 @@
 			
 			
 			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-			$("#http_table").find("tr:gt(0)").remove();
+			$("#http_table > tbody").empty();
 			
 			Object.entries(resp.http).map(([topic, content]) => {
 				//console.log(resp);
@@ -435,7 +435,7 @@
 			
 			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
 			
-			$("#udp_table").find("tr:gt(0)").remove();
+			$("#udp_table > tbody").empty();
 			
 			Object.entries(resp.udp).map(([topic, content]) => {
 				var d = new Date(content.timestamp*1000); 
