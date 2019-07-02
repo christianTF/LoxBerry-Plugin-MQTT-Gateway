@@ -249,8 +249,17 @@
 		$( document ).ready(function() {
 			restoreWindow();
 			$(".ui-collapsible").on("collapsiblecollapse", function(event, ui) {console.log("Collaps", $(this).attr('id'));storeWindow($(this).attr('id'), "collapse");});
-			$(".ui-collapsible").on("collapsibleexpand", function(event, ui) {console.log("Expand", $(this).attr('id'));storeWindow($(this).attr('id'), "expand");});
-			
+			$(".ui-collapsible").on("collapsibleexpand", function(event, ui) {
+				console.log("Expand", $(this).attr('id'));
+				curr_coll = this;
+				storeWindow($(this).attr('id'), "expand");
+				$.each( $(".ui-collapsible"), function ( index, value ) {
+					if( this !== curr_coll ) {
+						console.log("Close ", $(this).attr('id'));
+						$(this).collapsible( "collapse" );
+					}
+				});
+			});
 			// Update date from http and udp table
 			http_table_skel();
 			udp_table_skel();
