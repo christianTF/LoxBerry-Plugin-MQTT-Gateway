@@ -251,14 +251,17 @@
 		
 		$( document ).ready(function() {
 			restoreWindow();
-			$(".ui-collapsible").on("collapsiblecollapse", function(event, ui) {console.log("Collaps", $(this).attr('id'));storeWindow($(this).attr('id'), "collapse");});
+			$(".ui-collapsible").on("collapsiblecollapse", function(event, ui) {
+				// console.log("Collaps", $(this).attr('id'));
+				storeWindow($(this).attr('id'), "collapse");
+			});
 			$(".ui-collapsible").on("collapsibleexpand", function(event, ui) {
-				console.log("Expand", $(this).attr('id'));
+				// console.log("Expand", $(this).attr('id'));
 				curr_coll = this;
 				storeWindow($(this).attr('id'), "expand");
 				$.each( $(".ui-collapsible"), function ( index, value ) {
 					if( this !== curr_coll ) {
-						console.log("Close ", $(this).attr('id'));
+						// console.log("Close ", $(this).attr('id'));
 						$(this).collapsible( "collapse" );
 					}
 				});
@@ -305,32 +308,33 @@
 			newRefreshInterval = calcInterval();
 			// console.log("CalcInterval:", newRefreshInterval, "intervalID:", intervalID);
 			if ( intervalID === undefined ) {
-				console.log("Refresh interval set to", refreshInterval);
+				// console.log("Refresh interval set to", refreshInterval);
 				intervalID = setInterval(updateTopics, refreshInterval);
 			} else if ( newRefreshInterval != refreshInterval ) {
-				console.log("Old refreshInterval", refreshInterval, "New refreshInterval", newRefreshInterval);
-				console.log("Refreh interval updated to", newRefreshInterval);
+				// console.log("Old refreshInterval", refreshInterval, "New refreshInterval", newRefreshInterval);
+				// console.log("Refreh interval updated to", newRefreshInterval);
 				refreshInterval = newRefreshInterval;
 				clearInterval(intervalID);
 				intervalID = setInterval(updateTopics, refreshInterval);
 			}
 			
-			console.log(logtime(), "RELAYED_TOPICS START Request");
+			// console.log(logtime(), "RELAYED_TOPICS START Request");
 			$.post( 'index.cgi', {
 				ajax: 'relayed_topics',
 				udpinport: udpinport })
 			.done(function(resp) {
-				console.log(logtime(), "RELAYED_TOPICS DONE Request");
+				// console.log(logtime(), "RELAYED_TOPICS DONE Request");
 			
 				// console.log( "ajax_post", "success", resp );
 				if (getSelectedText()) {
-					console.log("Text is selected");
-				return; }
-				console.log(logtime(), "RELAYED_TOPICS Generate_http_table");
+					// console.log("Text is selected");
+					return; 
+				}
+				// console.log(logtime(), "RELAYED_TOPICS Generate_http_table");
 				generate_http_table(resp);
-				console.log(logtime(), "RELAYED_TOPICS Generate_udp_table");
+				// console.log(logtime(), "RELAYED_TOPICS Generate_udp_table");
 				generate_udp_table(resp);
-				console.log(logtime(), "RELAYED_TOPICS Bind buttons");
+				// console.log(logtime(), "RELAYED_TOPICS Bind buttons");
 				
 				$(".disablecache").bind( "change", function(event, ui) {
 					checkbox_disablecache(event);
@@ -338,7 +342,7 @@
 				$(".resetAfterSend").bind( "change", function(event, ui) {
 					checkbox_resetAfterSend(event);
 				});
-				console.log(logtime(), "RELAYED_TOPICS FINISHED");
+				// console.log(logtime(), "RELAYED_TOPICS FINISHED");
 				
 		  })
 		  .fail(function(resp) {
@@ -521,8 +525,8 @@
 		}
     
 		function deleteTopic(obj) {
-			console.log("Delete", event);
-			console.log(event.toElement.dataset.topic);
+			// console.log("Delete", event);
+			// console.log(event.toElement.dataset.topic);
 			var udpinport = 0;
 			if (cfg) udpinport = cfg.Main.udpinport;
 			
@@ -531,7 +535,7 @@
 				udpinport: udpinport,
 				topic: event.toElement.dataset.topic })
 			.done(function(resp) {
-				console.log( "ajax_post", "success", resp );
+				// console.log( "ajax_post", "success", resp );
 				return; });
 		
 		
@@ -548,14 +552,14 @@
 			
 			// var cachetarget = event.currentTarget.id.replace(/\//g, '\_');
 			var is_checked = event.currentTarget.checked;
-			console.log("checkbox_disablecache", cachetarget, "Checked", is_checked);
+			// console.log("checkbox_disablecache", cachetarget, "Checked", is_checked);
 			
 			$.post( 'index.cgi', {
 				ajax: 'disablecache',
 				disablecache: is_checked,
 				topic: cachetarget })
 			.done(function(resp) {
-				console.log( "ajax_post", "success", resp );
+				// console.log( "ajax_post", "success", resp );
 				return; 
 			});
 		};
@@ -571,14 +575,14 @@
 			
 			// var checkboxtarget = event.currentTarget.id.replace(/\//g, '\_');
 			var is_checked = event.currentTarget.checked;
-			console.log("checkbox_reset_after_send", checkboxtarget, "Checked", is_checked);
+			// console.log("checkbox_reset_after_send", checkboxtarget, "Checked", is_checked);
 			
 			$.post( 'index.cgi', {
 				ajax: 'resetAfterSend',
 				resetAfterSend: is_checked,
 				topic: checkboxtarget })
 			.done(function(resp) {
-				console.log( "ajax_post", "success", resp );
+				// console.log( "ajax_post", "success", resp );
 				return; 
 			});
 		};
@@ -661,7 +665,7 @@
 		
 		// Parse config
 		cfg = JSON.parse('<TMPL_VAR JSONCONFIG>');
-		console.log("Config", cfg, cfg.Main, cfg.subscriptions);
+		// console.log("Config", cfg, cfg.Main, cfg.subscriptions);
 		
 		// Hide donation
 		if( cfg.Main.donation_remove === true )
@@ -707,17 +711,17 @@
 
 		var id = $(this).attr('id');
 		var inputType = $(this).attr('type');
-		console.log(id, inputType, event);
+		// console.log(id, inputType, event);
 			
 		if (id == "subscriptions") {
-			console.log("subscritions content",  $("#"+id).val());
+			// console.log("subscritions content",  $("#"+id).val());
 			cfg.subscriptions = $.trim($("#"+id).val()).split("\n");
-			console.log("Subscriptions Array", cfg.subscriptions);
+			// console.log("Subscriptions Array", cfg.subscriptions);
 		} 
 		else if (id == "conversions") {
-			console.log("conversions content",  $("#"+id).val());
+			// console.log("conversions content",  $("#"+id).val());
 			cfg.conversions = $.trim($("#"+id).val()).split("\n");
-			console.log("Conversions Array", cfg.conversions);
+			// console.log("Conversions Array", cfg.conversions);
 		} 
 		else if (id.startsWith("Main.")) {
 			var idarray = id.split(".");
@@ -750,7 +754,7 @@
 	$("#saveapply").click(function(){
 
 		// var data = $('form').serialize() + "&save=true";
-		console.log("Submitting form", cfg);
+		// console.log("Submitting form", cfg);
 		$("#saveapply").attr("disabled", true);
 		$.ajax( { 
 				type: 'POST',
@@ -760,15 +764,15 @@
 				data: JSON.stringify(cfg)
 			} )
 		.done(function() {
-			console.log( "Success" );
+			// console.log( "Success" );
 			$("#savemessages").attr("style", "color:green").html("Saved successfully |");
 		})
 		.fail(function() {
-			console.log( "Error" );
+			// console.log( "Error" );
 			$("#savemessages").attr("style", "color:red").html("Error saving |");
 		})
 		.always(function() {
-			console.log( "Finished" );
+			// console.log( "Finished" );
 			$("#saveapply").attr("disabled", false);
 		
 		});
@@ -799,7 +803,7 @@
 			})
 			
 			.always(function( data ) {
-				console.log( "Credentials finished" );
+				// console.log( "Credentials finished" );
 			
 			});
 		
@@ -807,18 +811,18 @@
 	});
 
 	$("#restartmqttgateway").click(function(){
-		console.log("Restart pressed");
+		// console.log("Restart pressed");
 		$("#restartmqttgateway").attr("disabled", true);
 		$.post( 'index.cgi', {
 			ajax: 'restartgateway' })
 		.done(function(resp) {
-			console.log( "ajax_post", "success", resp );
+			// console.log( "ajax_post", "success", resp );
 	  })
 	  .fail(function(resp) {
 			console.log( "ajax_post", "failed", resp );
 	  })
 	  .always(function(resp) {
-			console.log( "ajax_post", "finished", resp );
+			// console.log( "ajax_post", "finished", resp );
 		$("#restartmqttgateway").attr("disabled", false);
 		update_pids();
 			
@@ -828,7 +832,7 @@
 	$("#check_securepin").click(function(){
 
 		// var data = $('form').serialize() + "&save=true";
-		console.log("Checking secure pin");
+		// console.log("Checking secure pin");
 		$("#check_securepin").attr("disabled", true);
 		$("#check_hint").attr("style", "color:blue;").html("One second...");
 		$.ajax( { 
@@ -839,11 +843,11 @@
 				data: { action: 'getcred', secpin: $('#securepin').val() }
 			} )
 		.fail(function( data ) {
-			console.log( "Error" );
+			console.log( "getcred Error" );
 			$("#check_hint").attr("style", "color:red").html("Error checking your SecurePIN.");
 		})
 		.done(function( data ) {
-			console.log( "getcred Success" );
+			// console.log( "getcred Success" );
 			// $("#savemessages").attr("style", "color:green").html("Saved successfully |");
 			
 			if( data.error != 0 ) {
@@ -876,7 +880,7 @@
 		})
 		
 		.always(function( data ) {
-			console.log( "Finished" );
+			// console.log( "Finished" );
 			$("#check_securepin").attr("disabled", false);
 		
 		});
