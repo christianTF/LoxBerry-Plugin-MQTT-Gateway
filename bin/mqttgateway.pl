@@ -514,6 +514,18 @@ sub read_config
 			$mqtt->retain($gw_topicbase . "status", "Joining");
 			
 			@subscriptions = @{$cfg->{subscriptions}};
+			my @checked_subscriptions;
+			LOGINF "Checking subscriptions for invalid entries";
+			foreach my $topic (@subscriptions) {
+				my $msg = validate_subscription($topic);
+				if($msg) {
+					LOGWARN "Skipping subscription $topic ($msg)";
+				} else {
+					push @checked_subscriptions, $topic;
+				}
+			}
+			@subscriptions = @checked_subscriptions;
+			
 			push @subscriptions, $gw_topicbase . "#";
 			# Re-Subscribe new topics
 			foreach my $topic (@subscriptions) {
@@ -540,8 +552,6 @@ sub read_config
 			$health_state{broker}{count} = 0;
 			
 		}
-		
-		
 		
 		# Conversions
 		undef %conversions;
@@ -575,7 +585,44 @@ sub read_config
 	}
 }
 
-
+# Checks a subscription topic for validity to Standard (https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html)
+# Returns a string with the error on error
+# Returns undef if ok
+sub validate_subscription
+{
+	my ($topic) = @_;
+	
+	if (!$topic) { 
+		return "Topic empty"; }
+	
+	if ($topic eq "#") {
+		return;
+	}
+	if ($topic eq "/") {
+		return "/ without any topic level not allowed";
+	}
+	if(length($topic) > 65535) {
+		return "Topic too long (max 65535 bytes";
+	}
+	
+	my @parts = split /\//, $topic;
+	for ( my $i = 0; $i < scalar @parts; $i++) {
+		if ($parts[$i] eq '#' and $i eq (scalar @parts - 1)) {
+			return;
+		}
+		if ($parts[$i] eq '+') {
+			next;
+		}
+		if ( index($parts[$i], "+") != -1 ) {
+			return "+ not allowed as string-part of a subtopic";
+		}
+		if ( index($parts[$i], "#") != -1 ) {
+			return "# not allowed in the middle";
+		}
+	}
+	return;
+	
+}
 
 sub create_in_socket 
 {
