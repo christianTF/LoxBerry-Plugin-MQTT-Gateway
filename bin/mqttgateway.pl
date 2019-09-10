@@ -36,6 +36,8 @@ $SIG{TERM} = sub {
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
 my $credfile = "$lbpconfigdir/cred.json";
+my $datafile = "/dev/shm/mqttgateway_topics.json";
+my $extplugindatafile = "/dev/shm/mqttgateway_extplugindata.json";
 my $json;
 my $json_cred;
 my $cfg;
@@ -425,6 +427,7 @@ sub read_config
 		$configs_changed = 1;
 		my @plugins = LoxBerry::System::get_plugins(0, 1);
 		foreach my $plugin (@plugins) {
+			next if (!$plugin->{PLUGINDB_FOLDER});
 			my $ext_plugindir = "$lbhomedir/config/plugins/$plugin->{PLUGINDB_FOLDER}/";
 			$plugindirs{$plugin->{PLUGINDB_TITLE}}{configfolder} = $ext_plugindir;
 			
@@ -666,6 +669,9 @@ sub read_extplugin_config
 	
 	foreach my $pluginname ( keys %plugindirs ) {
 		my $content;
+		@{$plugindirs{$pluginname}{subscriptions}} = () ;
+		@{$plugindirs{$pluginname}{conversions}} = ();
+		@{$plugindirs{$pluginname}{resetaftersend}} = ();
 		$content = LoxBerry::System::read_file( $plugindirs{$pluginname}{configfolder}."mqtt_subscriptions.cfg" );
 		if ($content) {
 			$content =~ s/\r\n/\n/g;
@@ -688,6 +694,14 @@ sub read_extplugin_config
 			$plugindirs{$pluginname}{resetaftersend} = \@lines;
 		}
 	}
+	
+	unlink $extplugindatafile;
+	my $extplugindataobj = LoxBerry::JSON::JSONIO->new();
+	my $extplugindata = $extplugindataobj->open(filename => $extplugindatafile);
+	$extplugindata->{plugins}=\%plugindirs;
+	$extplugindataobj->write();
+	undef $extplugindataobj;
+	
 }
 
 
@@ -765,8 +779,6 @@ sub save_relayed_states
 	#$nextrelayedstatepoll = time + 60;
 	
 	LOGINF "Relayed topics are saved on RAMDISK for UI";
-	
-	my $datafile = "/dev/shm/mqttgateway_topics.json";
 	
 	unlink $datafile;
 	my $relayjsonobj = LoxBerry::JSON::JSONIO->new();

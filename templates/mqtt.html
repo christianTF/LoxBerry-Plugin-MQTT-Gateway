@@ -141,8 +141,15 @@
 		<textarea name="subscriptions" id="subscriptions" rows="20" data-autogrow="false"></textarea>
 		
 	</div>
-	
 	</form>
+	
+	
+	<div data-role='collapsible' id='coll_extsubscriptions' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right' style="display:none">
+		<h2 class='ui-bar ui-bar-a ui-corner-all'>Subscriptions defined by other plugins</h2>
+		<div id="extplugin_subscriptions" style="display:flex;flex-wrap:wrap;justify-content:space-evenly;align-items:flex-start;align-content:flex-start;background-color:lightgray;">
+		</div>
+	</div>
+	
 	<!-- /Form SUBSCRIPTIONS -->
 	
 	
@@ -161,6 +168,13 @@
 	</div>
 	</form>
 
+	<div data-role='collapsible' id='coll_extconversions' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right' style="display:none">
+		<h2 class='ui-bar ui-bar-a ui-corner-all'>Conversions defined by other plugins</h2>
+		<div id="extplugin_conversions" style="display:flex;flex-wrap:wrap;justify-content:space-evenly;align-items:flex-start;align-content:flex-start;background-color:lightgray;">
+		</div>
+	</div>
+	
+	
 	<!-- /Form CONVERSIONS -->
 </TMPL_IF>
 
@@ -664,7 +678,10 @@
 		update_pids();
 		
 		// Parse config
-		cfg = JSON.parse('<TMPL_VAR JSONCONFIG>');
+		cfgstr = '<TMPL_VAR JSONCONFIG>';
+		if (cfgstr) cfg = JSON.parse(cfgstr);
+		extpluginsstr = '<TMPL_VAR EXTPLUGINSETTINGS>';
+		if (extpluginsstr) extpluginsettings = JSON.parse(extpluginsstr);
 		// console.log("Config", cfg, cfg.Main, cfg.subscriptions);
 		
 		// Hide donation
@@ -701,6 +718,40 @@
 		$('#securepin').val(sessionStorage.getItem("securePIN"));
 		if( $('#securepin').val() ) {
 			$('#check_securepin').trigger("click");
+		}
+		
+		// Parse external plugin settings
+		/* External Subscriptions and Conversions */
+		extSubscriptionsHtml = "";
+		extConversionsHtml = "";
+		if( typeof extpluginsettings !== 'undefined' ) {
+			$.each(extpluginsettings.plugins, function(pluginname, pluginobj) {
+					console.log("Plugin", pluginname, pluginobj);
+					if(typeof pluginobj.subscriptions !== 'undefined' && pluginobj.subscriptions.length > 0) {
+						extSubscriptionsHtml += '<div style="padding:10px 10px 10px 10px;">';
+						extSubscriptionsHtml += '<b>'+pluginname+'</b>';
+						extSubscriptionsHtml += '<div>'+pluginobj.subscriptions.join('</div><div>')+'</div>';
+						extSubscriptionsHtml += '</div>';
+					}
+					if(typeof pluginobj.conversions !== 'undefined' && pluginobj.conversions.length > 0) {
+						extConversionsHtml += '<div style="padding:10px 10px 10px 10px;">';
+						extConversionsHtml += '<b>'+pluginname+'</b>';
+						extConversionsHtml += '<div>'+pluginobj.conversions.join('</div><div>')+'</div>';
+						extConversionsHtml += '</div>';
+					}
+			});
+		}
+		if(extSubscriptionsHtml) {
+			// $("#extplugin_subscriptions_heading").html('<h4>Subscriptions defined by other plugins</h4>');
+			// extSubscriptionsHtml = extSubscriptionsHtml;
+			$("#extplugin_subscriptions").html(extSubscriptionsHtml);
+			$("#coll_extsubscriptions").show();
+		}
+		if(extConversionsHtml) {
+			// $("#extplugin_subscriptions_heading").html('<h4>Subscriptions defined by other plugins</h4>');
+			// extSubscriptionsHtml = extSubscriptionsHtml;
+			$("#extplugin_conversions").html(extConversionsHtml);
+			$("#coll_extconversions").show();
 		}
 		
 		

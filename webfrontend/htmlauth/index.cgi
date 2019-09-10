@@ -5,6 +5,7 @@ use CGI;
 #require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
+my $extplugindatafile = "/dev/shm/mqttgateway_extplugindata.json";
 
 my $cgi = CGI->new;
 my $q = $cgi->Vars;
@@ -224,7 +225,10 @@ sub settings_form
 sub subscriptions_form
 {
 
-	# Nothing in here, everything JS
+	# Send external plugin settings to template
+	my $extpluginfilecontent = LoxBerry::System::read_file($extplugindatafile);
+	$extpluginfilecontent =~ s/[\r\n]//g;
+	$template->param('EXTPLUGINSETTINGS', $extpluginfilecontent);
 
 }
 
@@ -234,7 +238,10 @@ sub subscriptions_form
 sub conversions_form
 {
 
-	# Nothing in here, everything JS
+	# Send external plugin settings to template
+	my $extpluginfilecontent = LoxBerry::System::read_file($extplugindatafile);
+	$extpluginfilecontent =~ s/[\r\n]//g;
+	$template->param('EXTPLUGINSETTINGS', $extpluginfilecontent);
 
 }
 
