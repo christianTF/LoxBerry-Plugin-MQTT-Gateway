@@ -1,3 +1,5 @@
 mosquitto
 mosquitto-clients
 libhash-flatten-perl
+libfile-monitor-perl
+

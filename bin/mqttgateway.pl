@@ -13,6 +13,7 @@ use Scalar::Util qw(looks_like_number);
 use Net::MQTT::Simple;
 use LoxBerry::JSON::JSONIO;
 use Hash::Flatten;
+use File::Monitor;
 
 use Data::Dumper;
 
@@ -39,17 +40,21 @@ my $json;
 my $json_cred;
 my $cfg;
 my $cfg_cred;
-my $cfg_timestamp;
-my $cfg_cred_timestamp;
 
 my $nextconfigpoll;
 my $mqtt;
+
+# Plugin directories to load config files
+my %plugindirs;
 
 # Subscriptions
 my @subscriptions;
 
 # Conversions
 my %conversions;
+
+# Reset After Send Topics
+my %resetAfterSend;
 
 # Hash to store all submitted topics
 my %relayed_topics_udp;
@@ -97,6 +102,9 @@ LoxBerry::IO::msudp_send(1, 6666, "MQTT", "KEEP IN MIND: LoxBerry MQTT only send
 
 my %miniservers;
 %miniservers = LoxBerry::System::get_miniservers();
+
+# Create monitor to handle config file changes
+my $monitor = File::Monitor->new();
 
 read_config();
 create_in_socket();
@@ -187,7 +195,8 @@ sub udpin
 		}
 	} elsif($command eq 'reconnect') {
 		LOGOK "Forcing reconnection and retransmission to Miniserver";
-		$cfg_timestamp = 0;
+		$nextconfigpoll = 0;
+		undef %plugindirs;
 		$LoxBerry::IO::mem_sendall = 1;
 	} elsif($command eq 'save_relayed_states') {
 		LOGOK "Save relayed states triggered by udp request";
@@ -298,11 +307,11 @@ sub received
 	foreach my $sendtopic (keys %sendhash) {
 		my $sendtopic_underlined = $sendtopic;
 		$sendtopic_underlined =~ s/\//_/g;
-		if (exists $cfg->{Noncached}->{$sendtopic_underlined} or exists $cfg->{resetAfterSend}->{$sendtopic_underlined}) {
+		if (exists $cfg->{Noncached}->{$sendtopic_underlined} or exists $resetAfterSend{$sendtopic_underlined}) {
 			LOGDEB "   $sendtopic is non-cached";
 			$sendhash_noncached{$sendtopic} = $sendhash{$sendtopic};
 			# Create a list of reset-after-send topics, with value 0
-			if(exists $cfg->{resetAfterSend}->{$sendtopic_underlined}) {
+			if(exists $resetAfterSend{$sendtopic_underlined}) {
 				$sendhash_resetaftersend{$sendtopic} = "0";
 			}
 		
@@ -411,28 +420,40 @@ sub read_config
 {
 	my $configs_changed = 0;
 	$nextconfigpoll = time+5;
-	my $mtime;
 	
-	# Check cfg timestamp
-	$mtime = (stat($cfgfile))[9];
-	if(!defined $cfg_timestamp or $cfg_timestamp != $mtime or !defined $cfg) {
-		LOGDEB "cfg mtime: $mtime";
+	if(!%plugindirs) {
 		$configs_changed = 1;
-	}
-	$cfg_timestamp = $mtime;
+		my @plugins = LoxBerry::System::get_plugins(0, 1);
+		foreach my $plugin (@plugins) {
+			my $ext_plugindir = "$lbhomedir/config/plugins/$plugin->{PLUGINDB_FOLDER}/";
+			$plugindirs{$plugin->{PLUGINDB_TITLE}}{configfolder} = $ext_plugindir;
+			
+			#push @plugindirs, $ext_plugindir;
+			$monitor->watch( $ext_plugindir.'mqtt_subscriptions.cfg' );
+			$monitor->watch( $ext_plugindir.'mqtt_conversions.cfg' );
+			$monitor->watch( $ext_plugindir.'mqtt_resetaftersend.cfg' );
+		}
+		# Also watch own config
+		$monitor->watch( $cfgfile );
+		$monitor->watch( $credfile );
 	
-	# Check cred timestamp
-	$mtime = (stat($credfile))[9];
-	if(!defined $cfg_cred_timestamp or $cfg_cred_timestamp != $mtime or  !defined $cfg_cred) {
-		LOGDEB "cred mtime: $mtime";
-		$configs_changed = 1;
 	}
-	$cfg_cred_timestamp = $mtime;
-
+	
+	my @changes = $monitor->scan;
+	
+	if(!defined $cfg or @changes) {
+		$configs_changed = 1;
+		my @changed_files;
+		# Only for logfile
+		for my $change ( @changes ) {
+			push @changed_files, $change->name;
+		}
+		LOGINF "Changed configuration files: " .  join(',', @changed_files) if (@changed_files);
+	}
+	
 	if($configs_changed == 0) {
 		return;
 	}
-
 	
 	LOGOK "Reading config changes";
 	# $LoxBerry::JSON::JSONIO::DEBUG = 1;
@@ -514,6 +535,23 @@ sub read_config
 			$mqtt->retain($gw_topicbase . "status", "Joining");
 			
 			@subscriptions = @{$cfg->{subscriptions}};
+			
+			read_extplugin_config();
+			
+			# Add external plugin subscriptions to subscription list
+			foreach my $pluginname ( keys %plugindirs ) {
+				if( $plugindirs{$pluginname}{subscriptions} ) {
+					push @subscriptions, @{$plugindirs{$pluginname}{subscriptions}};
+				}
+			}
+			
+			# Make subscriptions unique
+			LOGDEB "Uniquify subscriptions: Before " . scalar( @subscriptions ) . " subscriptions";
+			my %subscriptions_unique = map { $_, 1 } @subscriptions;
+			@subscriptions = sort keys %subscriptions_unique;
+			undef %subscriptions_unique;
+			LOGDEB "Uniquify subscriptions: Afterwards " . scalar( @subscriptions ) . " subscriptions";
+			
 			my @checked_subscriptions;
 			LOGINF "Checking subscriptions for invalid entries";
 			foreach my $topic (@subscriptions) {
@@ -534,12 +572,12 @@ sub read_config
 			}
 		};
 		if ($@) {
+			LOGERR "Exception catched on reconnecting and subscribing: $@";
+			$health_state{broker}{message} = "Exception catched on reconnecting and subscribing: $@";
 			eval {
 				$mqtt->retain($gw_topicbase . "status", "Disconnected");
 			
 			};
-			LOGERR "Exception catched on reconnecting and subscribing: $!";
-			$health_state{broker}{message} = "Exception catched on reconnecting and subscribing: $!";
 			$health_state{broker}{error} = 1;
 			$health_state{broker}{count} += 1;
 			
@@ -555,28 +593,64 @@ sub read_config
 		
 		# Conversions
 		undef %conversions;
-		if ($cfg->{conversions}) {
-			LOGOK "Processing conversions";
-			foreach my $conversion (@{$cfg->{conversions}}) {
-				my ($text, $value) = split('=', $conversion, 2);
-				$text = trim($text);
-				$value = trim($value);
-				if($text eq "" or $value eq "") {
-					LOGWARN "Ignoring conversion setting: $conversion (a part seems to be empty)";
-					next;
-				}
-				if(!looks_like_number($value)) {
-					LOGWARN "Conversion entry: Convert '$text' to '$value' - Conversion is used, but '$value' seems not to be a number";
-				} else {
-					LOGINF "Conversion entry: Convert '$text' to '$value'";
-				}
-				if(defined $conversions{$text}) {
-					LOGWARN "Conversion entry: '$text=$value' overwrites '$text=$conversions{$text}' - You have a DUPLICATE";
-				}
-				$conversions{$text} = $value;
+		my @temp_conversions_list;
+	
+		LOGOK "Processing conversions";
+		
+		LOGINF "Adding user defined conversions";
+		push @temp_conversions_list, @{$cfg->{conversions}} if ($cfg->{conversions});
+		
+		# Add external plugin conversions to conversion list
+		LOGINF "Adding plugin conversions";
+		foreach my $pluginname ( keys %plugindirs ) {
+			if( $plugindirs{$pluginname}{conversions} ) {
+				push @temp_conversions_list, @{$plugindirs{$pluginname}{conversions}};
 			}
-		} else {
-			LOGOK "No conversions set";
+		}
+		
+		# Parsing conversions
+		foreach my $conversion (@temp_conversions_list) {
+			my ($text, $value) = split('=', $conversion, 2);
+			$text = trim($text);
+			$value = trim($value);
+			if($text eq "" or $value eq "") {
+				LOGWARN "Ignoring conversion setting: $conversion (a part seems to be empty)";
+				next;
+			}
+			if(!looks_like_number($value)) {
+				LOGWARN "Conversion entry: Convert '$text' to '$value' - Conversion is used, but '$value' seems not to be a number";
+			} else {
+				LOGINF "Conversion entry: Convert '$text' to '$value'";
+			}
+			if(defined $conversions{$text}) {
+				LOGWARN "Conversion entry: '$text=$value' overwrites '$text=$conversions{$text}' - You have a DUPLICATE";
+			}
+			$conversions{$text} = $value;
+		}
+		undef @temp_conversions_list;
+		
+		# Reset after send 
+		# User defined settings
+		LOGINF "Processing Reset After Send";
+		undef %resetAfterSend;
+		if (exists $cfg->{resetAfterSend}) {
+			LOGINF "Adding user defined Reset After Send";
+			foreach my $topic ( keys %{$cfg->{resetAfterSend}}) {
+				if (LoxBerry::System::is_enabled($cfg->{resetAfterSend}->{$topic}) ) {
+					$resetAfterSend{$topic} = 1;
+					LOGDEB "ResetAfterSend: $topic";
+				}
+			}
+		}
+		LOGINF "Adding plugins Reset After Send";
+		foreach my $pluginname ( keys %plugindirs ) {
+			if( $plugindirs{$pluginname}{resetaftersend} ) {
+				foreach my $topic ( @{$plugindirs{$pluginname}{resetaftersend}} ) {
+					# %resetAfterSend = map { $_ => 1 } @{$plugindirs{$pluginname}{resetaftersend}};
+					$resetAfterSend{$topic} = 1;
+					LOGDEB "ResetAfterSend: $topic (Plugin $pluginname)";
+				}
+			}
 		}
 		
 		# Clean UDP socket
@@ -584,6 +658,39 @@ sub read_config
 	
 	}
 }
+
+
+sub read_extplugin_config
+{
+	return if(!%plugindirs);
+	
+	foreach my $pluginname ( keys %plugindirs ) {
+		my $content;
+		$content = LoxBerry::System::read_file( $plugindirs{$pluginname}{configfolder}."mqtt_subscriptions.cfg" );
+		if ($content) {
+			$content =~ s/\r\n/\n/g;
+			my @lines = split("\n", $content);
+			@lines = grep { $_ ne '' } @lines;
+			$plugindirs{$pluginname}{subscriptions} = \@lines;
+		}
+		$content = LoxBerry::System::read_file( $plugindirs{$pluginname}{configfolder}."mqtt_conversions.cfg" );
+		if ($content) {
+			$content =~ s/\r\n/\n/g;
+			my @lines = split("\n", $content);
+			@lines = grep { $_ ne '' } @lines;
+			$plugindirs{$pluginname}{conversions} = \@lines;
+		}
+		$content = LoxBerry::System::read_file( $plugindirs{$pluginname}{configfolder}."mqtt_resetaftersend.cfg" );
+		if ($content) {
+			$content =~ s/\r\n/\n/g;
+			my @lines = split("\n", $content);
+			@lines = grep { $_ ne '' } @lines;
+			$plugindirs{$pluginname}{resetaftersend} = \@lines;
+		}
+	}
+}
+
+
 
 # Checks a subscription topic for validity to Standard (https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html)
 # Returns a string with the error on error
@@ -668,7 +775,7 @@ sub save_relayed_states
 	$relayjson->{udp} = \%relayed_topics_udp;
 	$relayjson->{http} = \%relayed_topics_http;
 	$relayjson->{Noncached} = $cfg->{Noncached};
-	$relayjson->{resetAfterSend} = $cfg->{resetAfterSend};
+	$relayjson->{resetAfterSend} = \%resetAfterSend;
 	$relayjson->{health_state} = \%health_state;
 	$relayjsonobj->write();
 	undef $relayjsonobj;
