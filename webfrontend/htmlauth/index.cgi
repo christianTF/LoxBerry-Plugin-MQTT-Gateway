@@ -132,7 +132,7 @@ if( $q->{ajax} ) {
 	# Push json config to template
 	
 	my $cfgfilecontent = LoxBerry::System::read_file($cfgfile);
-	$cfgfilecontent =~ s/[\r\n]//g;
+	$cfgfilecontent = jsescape($cfgfilecontent);
 	$template->param('JSONCONFIG', $cfgfilecontent);
 	
 	
@@ -227,7 +227,7 @@ sub subscriptions_form
 
 	# Send external plugin settings to template
 	my $extpluginfilecontent = LoxBerry::System::read_file($extplugindatafile);
-	$extpluginfilecontent =~ s/[\r\n]//g;
+	$extpluginfilecontent = jsescape($extpluginfilecontent);
 	$template->param('EXTPLUGINSETTINGS', $extpluginfilecontent);
 
 }
@@ -240,7 +240,7 @@ sub conversions_form
 
 	# Send external plugin settings to template
 	my $extpluginfilecontent = LoxBerry::System::read_file($extplugindatafile);
-	$extpluginfilecontent =~ s/[\r\n]//g;
+	$extpluginfilecontent = jsescape($extpluginfilecontent);
 	$template->param('EXTPLUGINSETTINGS', $extpluginfilecontent);
 
 }
@@ -368,4 +368,26 @@ sub ajax_header
 	);	
 }	
 	
+
+#################################################################################
+# Escape a json string for JavaScript code
+#################################################################################
+sub jsescape
+{
+	my ($stringToEscape) = shift;
+		
+	my $resultjs;
 	
+	if($stringToEscape) {
+		my %translations = (
+		"\r" => "\\r",
+		"\n" => "\\n",
+		"'"  => "\\'",
+		"\\" => "\\\\",
+		);
+		my $meta_chars_class = join '', map quotemeta, keys %translations;
+		my $meta_chars_re = qr/([$meta_chars_class])/;
+		$stringToEscape =~ s/$meta_chars_re/$translations{$1}/g;
+	}
+	return $stringToEscape;
+}
