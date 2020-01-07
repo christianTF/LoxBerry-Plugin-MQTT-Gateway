@@ -325,39 +325,46 @@ sub received
 	
 	# Send via UDP
 	if( is_enabled($cfg->{Main}{use_udp}) ) {
+		
+		#LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", $topic, $message);
+		foreach my $sendtopic (keys %sendhash) {
+			$relayed_topics_udp{$sendtopic}{timestamp} = time;
+			$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
+			$relayed_topics_udp{$sendtopic}{originaltopic} = $topic;
+			LOGDEB "  UDP: Preparing $sendtopic to MS No. " . $cfg->{Main}{msno};
+		}	
+		
+		my $udpresp;
+		
 		if( $cfg->{Main}{msno} and $cfg->{Main}{udpport} and $miniservers{$cfg->{Main}{msno}}) {
-			#LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", $topic, $message);
-			foreach my $sendtopic (keys %sendhash) {
-				$relayed_topics_udp{$sendtopic}{timestamp} = time;
-				$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
-				$relayed_topics_udp{$sendtopic}{originaltopic} = $topic;
-				LOGDEB "  UDP: Sending as $sendtopic to MS No. " . $cfg->{Main}{msno};
-			}	
-			
-			my $udpresp;
-			
 			# Send uncached
+			LOGDEB "  UDP: Sending all uncached values";
 			$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
 			if (!$udpresp) {
 				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via non-cached api).";
 				$health_state{udpsend}{error} = 1;
 				$health_state{udpsend}{count} += 1;
 			}
-			
+		
 			# Send 0 for Reset-after-send
+			LOGDEB "  UDP: Sending reset-after-send values";
 			$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
 			
 			# Send cached
+			LOGDEB "  UDP: Sending all other values";
 			$udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_cached);
 			if (!$udpresp) {
 				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via cached api).";
 				$health_state{udpsend}{error} = 1;
 				$health_state{udpsend}{count} += 1;
 			}
+		} else {
+			LOGERR "  UDP: Cannot send. No Miniserver defined, or UDP port missing";
 		}
+		
 	}
 	# Send via HTTP
-	if( is_enabled($cfg->{Main}{use_http}) and $miniservers{$cfg->{Main}{msno}} ) {
+	if( is_enabled($cfg->{Main}{use_http}) ) {
 		# Parse topics to replace / with _ (cached)
 		foreach my $sendtopic (keys %sendhash_cached) {
 			my $newtopic = $sendtopic;
@@ -382,24 +389,28 @@ sub received
 			$relayed_topics_http{$sendtopic}{timestamp} = time;
 			$relayed_topics_http{$sendtopic}{message} = $sendhash_cached{$sendtopic};
 			$relayed_topics_http{$sendtopic}{originaltopic} = $topic;
-			LOGDEB "  HTTP: Sending to input $sendtopic (using cache): $sendhash_cached{$sendtopic}";
+			LOGDEB "  HTTP: Preparing input $sendtopic (using cache): $sendhash_cached{$sendtopic}";
 		}
 		# Create overview data (non-cached)
 		foreach my $sendtopic (keys %sendhash_noncached) {
 			$relayed_topics_http{$sendtopic}{timestamp} = time;
 			$relayed_topics_http{$sendtopic}{message} = $sendhash_noncached{$sendtopic};
 			$relayed_topics_http{$sendtopic}{originaltopic} = $topic;
-			LOGDEB "  HTTP: Sending to input $sendtopic (noncached): $sendhash_noncached{$sendtopic}";
+			LOGDEB "  HTTP: Preparing input $sendtopic (noncached): $sendhash_noncached{$sendtopic}";
 		}
 
 		#LOGDEB "  HTTP: Sending as $topic to MS No. " . $cfg->{Main}{msno};
 		#LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
 		
-		my $httpresp;
-		$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
-		$httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
-		$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno}, %sendhash_resetaftersend);
-		
+		if( $miniservers{$cfg->{Main}{msno}} ) {
+			LOGDEB "  HTTP: Sending all values";
+			my $httpresp;
+			$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
+			$httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
+			$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno}, %sendhash_resetaftersend);
+		} else {
+			LOGERR "  HTTP: Cannot send: No Miniserver defined";
+		}
 		# if (!$httpresp) {
 			# LOGDEB "  HTTP: Virtual input not available?";
 		# } elsif ($httpresp eq "1") {
