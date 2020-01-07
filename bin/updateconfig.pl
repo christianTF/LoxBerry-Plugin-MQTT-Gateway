@@ -91,7 +91,11 @@ sub update_config
 		LOGINF "Setting 'Convert booleans' to " . $cfg->{Main}{convert_booleans};
 		$changed++;
 		}
-	
+	if(! defined $cfg->{Main}{expand_json}) { 
+		$cfg->{Main}{expand_json} = 1; 
+		LOGINF "Setting 'Expand JSON' to " . $cfg->{Main}{expand_json};
+		$changed++;
+		}
 	if(! defined $cfg->{Main}{udpinport}) { 
 		$cfg->{Main}{udpinport} = 11884; 
 		LOGINF "Setting MQTT gateway UDP In-Port to " . $cfg->{Main}{udpinport};

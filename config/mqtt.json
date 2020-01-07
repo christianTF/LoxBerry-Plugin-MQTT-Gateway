@@ -1,1 +1,15 @@
-{"Main":{"brokeraddress":"localhost","msno":"1","udpport":"11883","convert_booleans":true,"use_udp":true,"use_http":false,"udpinport":"11884"},"subscriptions":["shellies/#"]} 
+{
+	"Main": {
+		"brokeraddress": "localhost",
+		"msno": "1",
+		"udpport": "11883",
+		"convert_booleans": true,
+		"use_udp": false,
+		"use_http": true,
+		"expand_json": true,
+		"udpinport": "11884"
+	},
+	"subscriptions": [
+		"shellies/#"
+	]
+}
