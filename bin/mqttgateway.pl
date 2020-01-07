@@ -68,7 +68,7 @@ my $nextrelayedstatepoll = 0;
 my $udpinsock;
 my $udpmsg;
 my $udpremhost;
-my $udpMAXLEN = 1024;
+my $udpMAXLEN = 10240;
 		
 # Own MQTT Gateway topic
 my $gw_topicbase;
@@ -160,10 +160,26 @@ sub udpin
 	$udpremhost = gethostbyaddr($ipaddr, AF_INET);
 	LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
 	## Send to MQTT Broker
-	# Check incoming message
+			
+	my ($command, $udptopic, $udpmessage);
+	my $contjson;
 	
-	$udpmsg = trim($udpmsg);
-	my ($command, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 3);
+	# Check for json content
+	eval {
+			$contjson = decode_json($udpmsg);
+	};
+	if($@) {
+		# Not a json message
+		$udpmsg = trim($udpmsg);
+		($command, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 3);
+	} else {
+		# json message
+		$udptopic = $contjson->{topic};
+		$udpmessage = $contjson->{value};
+		$command = is_enabled($contjson->{retain}) ? "retain" : "publish";
+	}
+
+	# Check incoming message
 	
 	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne "reconnect" and lc($command) ne "save_relayed_states") {
 		# Old syntax - move around the values

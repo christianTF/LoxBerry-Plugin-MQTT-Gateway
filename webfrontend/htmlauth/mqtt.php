@@ -8,15 +8,13 @@ $json = json_decode($jsoncontent, True);
 
 $udpinport = $json['Main']['udpinport'];
 
-$topic = $_GET['topic'];
-$value = $_GET['value'];
-$retain = $_GET['retain'];
+@$topic = $_GET['topic'];
+@$value = $_GET['value'];
+@$retain = $_GET['retain'];
 
 echo "topic: $topic\n";
 echo "value: $value\n";
 echo "retain: $retain\n";
-
-
 
 if(empty($topic)) 
 	syntaxhelp();
@@ -24,9 +22,9 @@ if(empty($topic))
 $address = "udp://127.0.0.1:$udpinport";
 $socket = fsockopen($address);
 if (is_enabled($retain)) {
-	$written = fwrite($socket, "retain $topic $value");
+	$written = fwrite($socket, json_encode( array ( "topic" => $topic, "value" => $value, "retain" => true) ) );
 } else {
-	$written = fwrite($socket, "publish $topic $value");
+	$written = fwrite($socket, json_encode( array ( "topic" => $topic, "value" => $value ) ) );
 }
 
 print "<p>$topic $value</p>";
