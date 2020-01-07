@@ -148,6 +148,12 @@ sub setcred
 			$mosq_config .= "psk_file $mosq_pskfile\n";
 		}
 		
+		# Websocket listener (currently without TLS)
+		$mosq_config .= "\n# Websockets listener\n";
+		$mosq_config .= "listener 9001\n";
+		$mosq_config .= "protocol websockets\n";
+		
+		
 		open(my $fh, '>', $mosq_cfgfile) or 
 		do {
 			$response{message} = "Could not open $mosq_cfgfile: $!";
