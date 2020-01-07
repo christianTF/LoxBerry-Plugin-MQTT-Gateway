@@ -120,7 +120,13 @@ sub setcred
 		$mosq_config = "# This file is directly managed by the MQTT-Gateway plugin.\n";
 		$mosq_config .= "# Do not change this file, as your changes will be lost on saving in the MQTT-Gateway webinterface.\n\n";
 		
-		$mosq_config .= "port 1883\n";
+		$mosq_config .= "port 1883\n\n";
+		$mosq_config .= "# To reduce SD writes, save Mosquitto DB only once a day\n";
+		$mosq_config .= "autosave_interval 86400\n\n";
+
+		## Not working because of permissions (user mosquitto has no access)
+		# $mosq_config .= "# Use LoxBerry's Plugin logging directory for Mosquitto logfile\n";
+		# $mosq_config .= "log_dest file $lbplogdir/mosquitto.log\n\n";
 			
 		# User and pass, or anonymous
 		if(!$brokeruser and !$brokerpass) {
