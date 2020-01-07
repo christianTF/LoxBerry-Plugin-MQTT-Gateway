@@ -357,7 +357,7 @@ sub received
 		
 		if( $cfg->{Main}{msno} and $cfg->{Main}{udpport} and $miniservers{$cfg->{Main}{msno}}) {
 			# Send uncached
-			LOGDEB "  UDP: Sending all uncached values";
+			# LOGDEB "  UDP: Sending all uncached values";
 			$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
 			if (!$udpresp) {
 				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via non-cached api).";
@@ -366,11 +366,11 @@ sub received
 			}
 		
 			# Send 0 for Reset-after-send
-			LOGDEB "  UDP: Sending reset-after-send values";
+			# LOGDEB "  UDP: Sending reset-after-send values";
 			$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
 			
 			# Send cached
-			LOGDEB "  UDP: Sending all other values";
+			# LOGDEB "  UDP: Sending all other values";
 			$udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_cached);
 			if (!$udpresp) {
 				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via cached api).";
@@ -422,7 +422,7 @@ sub received
 		#LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
 		
 		if( $miniservers{$cfg->{Main}{msno}} ) {
-			LOGDEB "  HTTP: Sending all values";
+			# LOGDEB "  HTTP: Sending all values";
 			my $httpresp;
 			$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
 			$httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
@@ -469,7 +469,15 @@ sub read_config
 		# Also watch own config
 		$monitor->watch( $cfgfile );
 		$monitor->watch( $credfile );
-	
+		
+		# Monitor for plugin changes (installation/update/uninstall) with special treatment
+		$monitor->watch( "$lbstmpfslogdir/plugins_state.json", sub {
+			# It requires to re-read the plugin database
+			LOGINF "Forcing re-read config because of plugin database change  (install/update/uninstall)";
+			undef %plugindirs;
+			$nextconfigpoll = 0;
+		} );
+
 	}
 	
 	my @changes = $monitor->scan;
