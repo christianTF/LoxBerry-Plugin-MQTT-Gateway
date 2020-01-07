@@ -37,12 +37,11 @@ if( $q->{ajax} ) {
 		$q->{ajax} = "restartgateway";
 	}
 	
-	# Restart Mosquitto DB
+	# Restart Mosquitto
 	if( $q->{ajax} eq "mosquitto_restart" ) {
 		qx( sudo $lbpbindir/sudo/mosq_restart.sh );
-		pids();
-		$response{pids} = \%pids;
-		print JSON::encode_json(\%response);
+		# Now restart the Gateway
+		$q->{ajax} = "restartgateway";
 	}
 	
 	# Restart Gateway

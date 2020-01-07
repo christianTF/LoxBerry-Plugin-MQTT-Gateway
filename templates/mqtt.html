@@ -869,8 +869,16 @@
 	$("#restartmqttgateway").click(function(){
 		// console.log("Restart pressed");
 		$("#restartmqttgateway").attr("disabled", true);
+		
+		
+		// Depending if local Mosquitto or not, only restart Gateway or both
+		if( cfg.Main.enable_mosquitto === true )
+			var action = 'mosquitto_restart';
+		else 
+			var action = 'restartgateway';
+		
 		$.post( 'index.cgi', {
-			ajax: 'restartgateway' })
+			ajax: action })
 		.done(function(resp) {
 			// console.log( "ajax_post", "success", resp );
 	  })
