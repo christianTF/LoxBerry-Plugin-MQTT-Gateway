@@ -3,4 +3,5 @@ loxberry ALL = NOPASSWD: REPLACELBPBINDIR/sudo/mosq_restart.sh
 loxberry ALL = NOPASSWD: REPLACELBPBINDIR/sudo/mosq_stop.sh
 loxberry ALL = NOPASSWD: REPLACELBPBINDIR/sudo/mosq_readconfig.sh
 loxberry ALL = NOPASSWD: REPLACELBPBINDIR/sudo/mosq_symlink.sh
+loxberry ALL = NOPASSWD: REPLACELBPBINDIR/sudo/mosq_purgedb.sh
 loxberry ALL = NOPASSWD: REPLACELBPBINDIR/updateconfig.pl

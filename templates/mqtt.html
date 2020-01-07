@@ -180,7 +180,7 @@
 
 
 <TMPL_IF FORM_TOPICS>
-	<!-- Form TOPICS -->
+	<!-- Form TOPICS (Incoming Overview) -->
 	<style>
 	.topics_table {
 		/* font-family: "Trebuchet MS", Arial, Helvetica, sans-serif; */
@@ -253,8 +253,10 @@
 		</div>
 		<!-- <button id="Main.remove_donate" data-mini="true"><TMPL_VAR donate_done_remove></button> -->
 	</div>
+	<br>
 	
-	
+	<!-- Clear broker database -->
+	<button class="ui-btn ui-btn-icon-right" id="purgemosquittodb" data-inline="true" style="display:none">Clear broker database</button>
 	
 	<script>
 		
@@ -688,6 +690,9 @@
 		if( cfg.Main.donation_remove === true )
 			$("#coll_donate").hide();
 		
+		// View PurgeDB button if Mosquitto is managed by plugin
+		if( cfg.Main.enable_mosquitto === true )
+			$("#purgemosquittodb").show();
 		
 		// Elements in subscriptions
 		if( cfg.subscriptions ) {
@@ -875,6 +880,25 @@
 	  .always(function(resp) {
 			// console.log( "ajax_post", "finished", resp );
 		$("#restartmqttgateway").attr("disabled", false);
+		update_pids();
+			
+	  });
+	});
+	
+	$("#purgemosquittodb").click(function(){
+		console.log("Restart Mosquitto database");
+		$("#purgemosquittodb").attr("disabled", true);
+		$.post( 'index.cgi', {
+			ajax: 'mosquitto_purgedb' })
+		.done(function(resp) {
+			// console.log( "ajax_post", "success", resp );
+	  })
+	  .fail(function(resp) {
+			console.log( "ajax_post", "failed", resp );
+	  })
+	  .always(function(resp) {
+			// console.log( "ajax_post", "finished", resp );
+		$("#purgemosquittodb").attr("disabled", false);
 		update_pids();
 			
 	  });
