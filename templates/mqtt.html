@@ -255,8 +255,11 @@
 	</div>
 	<br>
 	
-	<!-- Clear broker database -->
-	<button class="ui-btn ui-btn-icon-right" id="purgemosquittodb" data-inline="true" style="display:none">Clear broker database</button>
+	<div style="display:flex;align-items:center;justify-content:center;">
+		<!-- Clear broker database -->
+		<button class="ui-btn ui-btn-icon-right" id="purgemosquittodb" data-inline="true" style="display:none">Clear broker database</button>
+		<button class="ui-btn ui-btn-icon-right" id="reconnect" data-inline="true">Retransmit all data (for testing)</button>
+	</div>
 	
 	<script>
 		
@@ -911,6 +914,28 @@
 			
 	  });
 	});
+
+$("#reconnect").click(function(){
+		console.log("Reconnect and retransmit all values");
+		$("#reconnect").attr("disabled", true);
+		$.post( 'index.cgi', {
+			ajax: 'reconnect',
+			udpinport: cfg.Main.udpinport })
+		.done(function(resp) {
+			// console.log( "ajax_post", "success", resp );
+	  })
+	  .fail(function(resp) {
+			console.log( "ajax_post", "failed", resp );
+	  })
+	  .always(function(resp) {
+			// console.log( "ajax_post", "finished", resp );
+		$("#reconnect").attr("disabled", false);
+		update_pids();
+			
+	  });
+	});
+
+
 
 	$("#check_securepin").click(function(){
 

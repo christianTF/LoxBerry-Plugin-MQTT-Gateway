@@ -53,6 +53,25 @@ if( $q->{ajax} ) {
 		print JSON::encode_json(\%response);
 	}
 	
+	# Send Reconnect
+	if( $q->{ajax} eq "reconnect" ) {
+		if (defined $q->{udpinport} and $q->{udpinport} ne "0") {
+			require IO::Socket;
+			my $udpoutsock = IO::Socket::INET->new(
+				Proto    => 'udp',
+				PeerPort => $q->{udpinport},
+				PeerAddr => 'localhost',
+			) or print STDERR "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
+
+			$udpoutsock->send('reconnect');
+			$udpoutsock->close;
+			print STDERR "MQTT index.cgi: Ajax reconnect sent\n";
+			
+		} else {
+			print STDERR "MQTT index.cgi: Ajax reconnect FAILED\n";
+		}
+		print JSON::encode_json(\%response);
+	}
 	
 	# Relayed topics for Incoming Overview
 	if( $q->{ajax} eq "relayed_topics" ) {
@@ -67,7 +86,6 @@ if( $q->{ajax} ) {
 
 			$udpoutsock->send('save_relayed_states');
 			$udpoutsock->close;
-			
 		}
 		
 		my $datafile = "/dev/shm/mqttgateway_topics.json";
