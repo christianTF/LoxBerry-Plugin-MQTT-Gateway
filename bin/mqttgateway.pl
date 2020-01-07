@@ -236,7 +236,10 @@ sub received
 	my %sendhash;
 	my $contjson;
 	
-	LOGINF "$topic: $message";
+	utf8::encode($topic);
+	LOGINF "MQTT received: $topic: $message";
+	
+	
 	
 	if( is_enabled($cfg->{Main}{expand_json}) ) {
 		# Check if message is a json
