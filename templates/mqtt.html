@@ -694,7 +694,7 @@
 			$("#coll_donate").hide();
 		
 		// View PurgeDB button if Mosquitto is managed by plugin
-		if( cfg.Main.enable_mosquitto === true )
+		if( is_enabled (cfg.Main.enable_mosquitto)  )
 			$("#purgemosquittodb").show();
 		
 		// Elements in subscriptions
@@ -875,7 +875,7 @@
 		
 		
 		// Depending if local Mosquitto or not, only restart Gateway or both
-		if( cfg.Main.enable_mosquitto === true )
+		if( is_enabled(cfg.Main.enable_mosquitto) === true)
 			var action = 'mosquitto_restart';
 		else 
 			var action = 'restartgateway';
@@ -1082,6 +1082,16 @@ $("#reconnect").click(function(){
 		validateTopics();
 	});
 
+	/* A simple is_enabled function as known from LoxBerry's Perl and PHP SDK */
+	function is_enabled( checkVal ) 
+	{
+		// console.log("is_enabled", checkVal);
+		if( typeof checkVal === 'undefined' ) return false;
+		
+		enabled = [ true, "true", 1, "1", "on", "yes", "enable", "enabled", "select", "selected", "checked" ];
+		checkVal = checkVal.trim().toLowerCase();
+		return enabled.includes(checkVal);
+	}
 
 
 	
