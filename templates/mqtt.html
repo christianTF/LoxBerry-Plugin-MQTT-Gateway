@@ -1088,6 +1088,8 @@ $("#reconnect").click(function(){
 		// console.log("is_enabled", checkVal);
 		if( typeof checkVal === 'undefined' ) return false;
 		
+		checkVal = checkVal.toString();
+		
 		enabled = [ true, "true", 1, "1", "on", "yes", "enable", "enabled", "select", "selected", "checked" ];
 		checkVal = checkVal.trim().toLowerCase();
 		return enabled.includes(checkVal);
