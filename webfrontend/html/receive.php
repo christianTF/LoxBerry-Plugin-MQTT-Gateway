@@ -3,7 +3,14 @@
 	require_once "loxberry_io.php";
 	require_once "loxberry_log.php";
 	
+/*
+   On copying the script:
+   You may need to adjust the logging "filename" parameter if you 
+   encounter errors of the loxberry_log API
+*/
+
 $params = [
+		"package" => "mqttgateway",
 		"name" => "Receiver",
 		"filename" => LBPLOGDIR."/http_receiver.log",
 		"append" => 1,
