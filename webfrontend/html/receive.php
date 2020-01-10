@@ -4,7 +4,7 @@
 	require_once "loxberry_log.php";
 	
 $params = [
-		"name" => "HTTP Receiver",
+		"name" => "Receiver",
 		"filename" => LBPLOGDIR."/http_receiver.log",
 		"append" => 1,
 		"stdout" => 1,
