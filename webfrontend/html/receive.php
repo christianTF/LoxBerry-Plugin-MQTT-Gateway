@@ -46,6 +46,11 @@ if( $argc > 1 ) {
 
 if( isset($_SERVER['REMOTE_HOST']) ) {
 	$topic = $_SERVER['REMOTE_HOST'];
+	// Truncate FQDN to single hostname
+	$dotpos = strpos($topic, ".");
+	if( $dotpos != FALSE ) {
+		$topic = substr( $topic, 0, $dotpos);
+	}
 } elseif ( isset($_SERVER['REMOTE_ADDR']) ) {
 	$topic = $_SERVER['REMOTE_ADDR'];
 } else {
