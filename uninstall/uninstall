@@ -1,0 +1,27 @@
+#!/bin/bash
+
+. $LBHOMEDIR/libs/bashlib/notify.sh
+
+echo "<INFO> Getting last used broker credentials"
+USER="$(jq '.Credentials.brokeruser' REPLACELBPCONFIGDIR/cred.json)"
+PASS="$(jq '.Credentials.brokerpass' REPLACELBPCONFIGDIR/cred.json)"
+
+echo "<INFO> Sending notification about last credentials"
+notify plugininstall uninstall "MQTT Gateway uninstalled. Your last broker credentials: USER: $USER PASS: $PASS. Copy this NOW, if you need to recreate broker settings with same credentials!"
+
+echo "<INFO> Stopping MQTT Gateway service"
+pkill mqttgateway.pl
+
+echo "<INFO> Stopping Mosquitto"
+systemctl stop mosquitto
+
+if [ -e /etc/mosquitto/conf.d/mqttgateway.conf ] ; then
+	echo "<INFO> Removing Mosquitto config symlink from plugin (uninstall)"
+	unlink /etc/mosquitto/conf.d/mqttgateway.conf
+fi
+
+# Uninstall Mosquitto
+echo "<INFO> Uninstalling Mosquitto"
+apt-get -y purge mosquitto
+
+exit 0
