@@ -370,8 +370,11 @@ sub received
 			}
 		
 			# Send 0 for Reset-after-send
-			# LOGDEB "  UDP: Sending reset-after-send values";
-			$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
+			if ( scalar keys %sendhash_resetaftersend > 0 ) {
+				LOGDEB "  UDP: Sending reset-after-send values (delay ".$cfg->{Main}{resetaftersendms}." ms)";
+				Time::HiRes::sleep($cfg->{Main}{resetaftersendms}/1000);
+				$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
+			}
 			
 			# Send cached
 			# LOGDEB "  UDP: Sending all other values";
@@ -430,7 +433,11 @@ sub received
 			my $httpresp;
 			$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
 			$httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
-			$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno}, %sendhash_resetaftersend);
+			if ( scalar keys %sendhash_resetaftersend > 0 ) {
+				LOGDEB "  HTTP: Sending reset-after-send values (delay ".$cfg->{Main}{resetaftersendms}." ms)";
+				Time::HiRes::sleep($cfg->{Main}{resetaftersendms}/1000);
+				$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno}, %sendhash_resetaftersend);
+			}
 		} else {
 			LOGERR "  HTTP: Cannot send: No Miniserver defined";
 		}
@@ -535,6 +542,7 @@ sub read_config
 		if(! defined $cfg->{Main}{brokeraddress}) { $cfg->{Main}{brokeraddress} = 'localhost'; }
 		if(! defined $cfg->{Main}{udpinport}) { $cfg->{Main}{udpinport} = 11884; }
 		if(! defined $cfg->{Main}{pollms}) { $cfg->{Main}{pollms} = 50; }
+		if(! defined $cfg->{Main}{resetaftersendms}) { $cfg->{Main}{resetaftersendms} = 10; }
 		
 		
 		

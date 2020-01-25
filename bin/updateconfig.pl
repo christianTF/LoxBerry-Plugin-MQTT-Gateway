@@ -107,7 +107,12 @@ sub update_config
 		LOGINF "Setting poll time for MQTT and UDP connection to " . $cfg->{Main}{pollms} . " milliseconds";
 		$changed++;
 		}
-	
+	if(! defined $cfg->{Main}{resetaftersendms}) { 
+		$cfg->{Main}{resetaftersendms} = 10; 
+		LOGINF "Setting Reset-After-Send delay to " . $cfg->{Main}{resetaftersendms} . " milliseconds";
+		$changed++;
+		}
+		
 	# Migrate credentials from mqtt.json to cred.json
 	if(defined $cfg->{Main}{brokeruser} or defined $cfg->{Main}{brokerpass}) {
 		unlink $credfile;
