@@ -166,18 +166,21 @@ sub udpin
 	
 	# Check for json content
 	eval {
-			$contjson = decode_json($udpmsg);
+			$contjson = from_json($udpmsg);
 	};
 	if($@) {
 		# Not a json message
 		$udpmsg = trim($udpmsg);
 		($command, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 3);
+		
 	} else {
 		# json message
 		$udptopic = $contjson->{topic};
 		$udpmessage = $contjson->{value};
 		$command = is_enabled($contjson->{retain}) ? "retain" : "publish";
 	}
+
+	
 
 	# Check incoming message
 	
@@ -187,6 +190,7 @@ sub udpin
 		$udptopic = $command;
 		$command = 'publish';
 	}
+	utf8::decode($udptopic);
 	$command = lc($command);
 	if($command eq 'publish') {
 		LOGDEB "Publishing: '$udptopic'='$udpmessage'";
