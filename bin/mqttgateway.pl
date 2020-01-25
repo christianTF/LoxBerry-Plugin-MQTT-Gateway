@@ -158,7 +158,10 @@ sub udpin
 
 	my($port, $ipaddr) = sockaddr_in($udpinsock->peername);
 	$udpremhost = gethostbyaddr($ipaddr, AF_INET);
-	LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
+	# Skip log for relayed_state requests
+	if( $udpmsg != 'save_relayed_states' ) {
+		LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
+	}
 	## Send to MQTT Broker
 			
 	my ($command, $udptopic, $udpmessage);
@@ -190,10 +193,12 @@ sub udpin
 		$udptopic = $command;
 		$command = 'publish';
 	}
+	my $udptopicPrint = $udptopic;
 	utf8::decode($udptopic);
+	
 	$command = lc($command);
 	if($command eq 'publish') {
-		LOGDEB "Publishing: '$udptopic'='$udpmessage'";
+		LOGDEB "Publishing: '$udptopicPrint'='$udpmessage'";
 		eval {
 			$mqtt->publish($udptopic, $udpmessage);
 		};
@@ -201,7 +206,7 @@ sub udpin
 			LOGERR "Catched exception on publishing to MQTT: $!";
 		}
 	} elsif($command eq 'retain') {
-		LOGDEB "Publish (retain): '$udptopic'='$udpmessage'";
+		LOGDEB "Publish (retain): '$udptopicPrint'='$udpmessage'";
 		eval {
 			$mqtt->retain($udptopic, $udpmessage);
 			
@@ -221,7 +226,7 @@ sub udpin
 		undef %plugindirs;
 		$LoxBerry::IO::mem_sendall = 1;
 	} elsif($command eq 'save_relayed_states') {
-		LOGOK "Save relayed states triggered by udp request";
+		# LOGOK "Save relayed states triggered by udp request";
 		save_relayed_states();
 	} else {
 		LOGERR "Unknown incoming UDP command";
@@ -828,7 +833,7 @@ sub save_relayed_states
 {
 	#$nextrelayedstatepoll = time + 60;
 	
-	LOGINF "Relayed topics are saved on RAMDISK for UI";
+	# LOGINF "Relayed topics are saved on RAMDISK for UI";
 	
 	unlink $datafile;
 	my $relayjsonobj = LoxBerry::JSON::JSONIO->new();
