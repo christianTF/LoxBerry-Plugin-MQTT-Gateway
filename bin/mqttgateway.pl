@@ -183,8 +183,6 @@ sub udpin
 		$command = is_enabled($contjson->{retain}) ? "retain" : "publish";
 	}
 
-	
-
 	# Check incoming message
 	
 	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne "reconnect" and lc($command) ne "save_relayed_states") {
@@ -309,10 +307,10 @@ sub received
 	if( is_enabled($cfg->{Main}{convert_booleans}) ) {
 		
 		foreach my $sendtopic (keys %sendhash) {
-			if( is_enabled($sendhash{$sendtopic}) ) {
+			if( $sendhash{$sendtopic} ne "" and is_enabled($sendhash{$sendtopic}) ) {
 				#LOGDEB "  Converting $message to 1";
 				$sendhash{$sendtopic} = "1";
-			} elsif ( is_disabled($sendhash{$sendtopic}) ) {
+			} elsif ( $sendhash{$sendtopic} ne "" and is_disabled($sendhash{$sendtopic}) ) {
 				#LOGDEB "  Converting $message to 0";
 				$sendhash{$sendtopic} = "0";
 			}
@@ -833,12 +831,47 @@ sub save_relayed_states
 {
 	#$nextrelayedstatepoll = time + 60;
 	
-	# LOGINF "Relayed topics are saved on RAMDISK for UI";
+	## Delete memory elements older than one day, and delete empty messages
 	
+	# Delete udp messages
+	foreach my $sendtopic (keys %relayed_topics_udp) {
+		if(	$relayed_topics_udp{$sendtopic}{timestamp} < (time - 24*60*60) ) {
+			delete $relayed_topics_udp{$sendtopic};
+		}
+		if( $relayed_topics_udp{$sendtopic}{message} eq "" ) {
+			delete $relayed_topics_udp{$sendtopic};
+		}
+	}
+	
+	# Delete http message
+	foreach my $sendtopic (keys %relayed_topics_http) {
+		if(	$relayed_topics_http{$sendtopic}{timestamp} < (time - 24*60*60) ) {
+			delete $relayed_topics_http{$sendtopic};
+		}
+		if( $relayed_topics_http{$sendtopic}{message} eq "" ) {
+			delete $relayed_topics_http{$sendtopic};
+		}
+
+	}
+	
+	
+	
+	
+	
+	
+	# LOGINF "Relayed topics are saved on RAMDISK for UI";
 	unlink $datafile;
 	my $relayjsonobj = LoxBerry::JSON::JSONIO->new();
 	my $relayjson = $relayjsonobj->open(filename => $datafile);
 
+	# Delete topics that are empty
+	
+	
+	
+	
+	
+	
+	
 	$relayjson->{udp} = \%relayed_topics_udp;
 	$relayjson->{http} = \%relayed_topics_http;
 	$relayjson->{Noncached} = $cfg->{Noncached};
@@ -856,21 +889,6 @@ sub save_relayed_states
 	# }
 	
 	
-	## Delete memory elements older than one day
-	
-	# Delete udp messages
-	foreach my $sendtopic (keys %relayed_topics_udp) {
-		if(	$relayed_topics_udp{$sendtopic}{timestamp} < (time - 24*60*60) ) {
-			delete $relayed_topics_udp{$sendtopic};
-		}
-	}
-	
-	# Delete http message
-	foreach my $sendtopic (keys %relayed_topics_http) {
-		if(	$relayed_topics_http{$sendtopic}{timestamp} < (time - 24*60*60) ) {
-			delete $relayed_topics_http{$sendtopic};
-		}
-	}
 	
 }
 
