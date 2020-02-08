@@ -112,6 +112,31 @@ if( $q->{ajax} ) {
 		print LoxBerry::System::read_file($datafile);
 	}
 	
+	# Publish by JSON
+	if( $q->{ajax} eq "publish_json" ) {
+		require LoxBerry::JSON;
+		my $json = LoxBerry::JSON->new();
+		my $cfg = $json->open(filename => $cfgfile, readonly => 1);
+		if (!$cfg) {
+			exit;
+		}
+		require IO::Socket;
+		my $udpoutsock = IO::Socket::INET->new(
+			Proto    => 'udp',
+			PeerPort => $cfg->{Main}->{udpinport},
+			PeerAddr => 'localhost',
+		) or print "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
+		
+		my %pub_data = ( topic => $q->{topic}, value => $q->{value}, retain => $q->{retain} );
+		$pubdata_json = to_json(\%pub_data);
+		$udpoutsock->send( $pubdata_json );
+		$udpoutsock->close;
+		print $pubdata_json;
+		exit(0);
+	
+	}
+	
+	
 	# Disable cache of topic
 	if( $q->{ajax} eq "disablecache" ) {
 		require LoxBerry::JSON;
