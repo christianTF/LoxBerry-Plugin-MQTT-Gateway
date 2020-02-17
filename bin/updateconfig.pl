@@ -130,6 +130,29 @@ sub update_config
 		$changed++;
 	}
 	
+	# Migrate simple subscription array to subscription object array (V1.1)
+	if( defined $cfg->{subscriptions} ) {
+		my $elem_count = keys @{$cfg->{subscriptions}};
+		LOGINF "$elem_count subscriptions are defined";
+		if( $elem_count > 0 ) {
+			if( ref($cfg->{subscriptions}[0]) ne "HASH" ) {
+				# Old string array to convert
+				LOGINF "Your subscriptions config is updated to the new data format";
+				my @subs_new;
+				foreach my $sub_old ( @{$cfg->{subscriptions}} ) {
+					my @toMS = ();
+					my %sub_new;
+					$sub_new{id} = $sub_old;
+					$sub_new{toMS} = \@toMS;
+					push @subs_new, \%sub_new;
+				}
+				$cfg->{subscriptions} = \@subs_new;
+				$changed++;
+				
+			}
+		}
+	}
+	
 	# Create Mosquitto config and password
 	if( is_enabled($cfg->{Main}{enable_mosquitto}) ) { 
 		my $credobj = LoxBerry::JSON::JSONIO->new();

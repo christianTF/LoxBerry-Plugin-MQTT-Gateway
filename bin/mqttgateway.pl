@@ -159,7 +159,7 @@ sub udpin
 	my($port, $ipaddr) = sockaddr_in($udpinsock->peername);
 	$udpremhost = gethostbyaddr($ipaddr, AF_INET);
 	# Skip log for relayed_state requests
-	if( $udpmsg != 'save_relayed_states' ) {
+	if( $udpmsg ne 'save_relayed_states' ) {
 		LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
 	}
 	## Send to MQTT Broker
@@ -192,7 +192,9 @@ sub udpin
 		$command = 'publish';
 	}
 	my $udptopicPrint = $udptopic;
-	utf8::decode($udptopic);
+	if($udptopic) {
+		utf8::decode($udptopic);
+	}
 	
 	$command = lc($command);
 	if($command eq 'publish') {
@@ -590,8 +592,11 @@ sub read_config
 		
 			$mqtt->retain($gw_topicbase . "status", "Joining");
 			
-			@subscriptions = @{$cfg->{subscriptions}};
-			
+			@subscriptions = ();
+			foreach my $sub_elem ( @{$cfg->{subscriptions}} ) {
+				LOGDEB "Subscription " . $sub_elem->{id};
+				push( @subscriptions,  $sub_elem->{id} );
+			}
 			read_extplugin_config();
 			
 			# Add external plugin subscriptions to subscription list
