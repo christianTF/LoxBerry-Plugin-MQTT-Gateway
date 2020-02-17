@@ -1,20 +1,28 @@
 #!/bin/bash
+log="REPLACELBPLOGDIR/daemonstart.log"
+echo "MQTT Gateway Daemon start" > $log
 
+echo "Running updateconfig.pl to query json" >> $log
 # Request if local Mosquitto is enabled
 MOSQENABLED="$(REPLACELBPBINDIR/updateconfig.pl section=Main param=enable_mosquitto)"
+echo "Result is $MOSQENABLED" >> $log
 
 if [ "$MOSQENABLED" -eq "1" ]; then
 	for i in {1...100}
 	do
+		echo "Try $i: Checking if Mosquitto is running..." >> $log
 		# Check if it is running
 		pgrep mosquitto
 		exitcode=$?
 		if [[ $exitcode != 0 ]]; then
 			# Restart if not
+			echo "   Restarting..." >> $log
 			systemctl restart mosquitto.service
+			echo "   Sleeping 10 s..." >> $log
 			sleep 10
 		fi
 	done
 fi
 
+echo "Starting mqttgateway.pl" >> $log
 su loxberry -c "cd REPLACELBPBINDIR ; REPLACELBPBINDIR/mqttgateway.pl > /dev/null 2>&1 &"
