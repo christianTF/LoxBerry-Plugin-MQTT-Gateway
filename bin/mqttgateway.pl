@@ -51,6 +51,7 @@ my %plugindirs;
 
 # Subscriptions
 my @subscriptions;
+my @subscriptions_toms;
 
 # Conversions
 my %conversions;
@@ -256,12 +257,11 @@ sub received
 			$contjson = decode_json($message);
 		};
 		if($@) {
-			LOGDEB "  Not a valid json message";
+			# LOGDEB "  Not a valid json message";
 			$is_json = 0;
 			$sendhash{$topic} = $message;
 		} else {
 			LOGDEB "  Expanding json message";
-			# LOGDEB Dumper($contjson);
 			$is_json = 1;
 			undef $@;
 			eval {
@@ -277,19 +277,10 @@ sub received
 					OnRefRef => '',
 				});
 				my $flat_hash = $flatterer->flatten($contjson);
-				# LOGDEB Dumper($flat_hash);
 				for my $record ( keys %$flat_hash ) {
 					my $val = $flat_hash->{$record};
 					$sendhash{"$topic/$record"} = $val;
-					# LOGDEB "  It is $record: $val";
 				}
-				
-				## Old one-level code
-				# for my $record ( keys %$contjson ) {
-					# my $val = $contjson->{$record};
-					# $sendhash{"$topic/$record"} = $val;
-					# #LOGDEB "  It is $record: $val";
-				# }
 			};
 			if($@) { 
 				LOGERR "Error on JSON expansion: $!";
@@ -351,6 +342,32 @@ sub received
 		}	
 	}
 	
+	# toMS: Evaluate what Miniservers to send to
+	my @toMS = ();
+	my $idx=0;
+	
+	# LOGDEB "Topic '$topic', " . scalar(@subscriptions) . " Subscriptions, " . scalar(@subscriptions_toms) . " toms elements";
+	
+	foreach ( @subscriptions ) {
+		$_ =~ s$\\+$[^/]+$;
+		$_ =~ s$#$.+$;
+		# LOGDEB "Regex to query: $_";
+		my $re = qr/$_/;
+		if( $topic =~ /$re/ ) {
+			@toMS = @{$subscriptions_toms[$idx]};
+			# LOGDEB "$_ matches $topic, send to MS " . join(",", @toMS);
+			last;
+		}
+		$idx++;
+	}
+	
+	# toMS: Fallback to default MS if nothing found
+	if( ! @toMS ) {
+		@toMS = ( $cfg->{Main}->{msno} );
+		LOGWARN "Incoming topic does not match any subscribed topic. This might be a bug";
+		LOGWARN "Topic: $topic";
+	}
+	
 	# Send via UDP
 	if( is_enabled($cfg->{Main}{use_udp}) ) {
 		
@@ -359,7 +376,7 @@ sub received
 			$relayed_topics_udp{$sendtopic}{timestamp} = time;
 			$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
 			$relayed_topics_udp{$sendtopic}{originaltopic} = $topic;
-			LOGDEB "  UDP: Preparing $sendtopic to MS No. " . $cfg->{Main}{msno};
+			LOGDEB "  UDP: Preparing $sendtopic";
 		}	
 		
 		my $udpresp;
@@ -367,27 +384,30 @@ sub received
 		if( $cfg->{Main}{msno} and $cfg->{Main}{udpport} and $miniservers{$cfg->{Main}{msno}}) {
 			# Send uncached
 			# LOGDEB "  UDP: Sending all uncached values";
-			$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
-			if (!$udpresp) {
-				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via non-cached api).";
-				$health_state{udpsend}{error} = 1;
-				$health_state{udpsend}{count} += 1;
-			}
-		
-			# Send 0 for Reset-after-send
-			if ( scalar keys %sendhash_resetaftersend > 0 ) {
-				LOGDEB "  UDP: Sending reset-after-send values (delay ".$cfg->{Main}{resetaftersendms}." ms)";
-				Time::HiRes::sleep($cfg->{Main}{resetaftersendms}/1000);
-				$udpresp = LoxBerry::IO::msudp_send($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
-			}
 			
-			# Send cached
-			# LOGDEB "  UDP: Sending all other values";
-			$udpresp = LoxBerry::IO::msudp_send_mem($cfg->{Main}{msno}, $cfg->{Main}{udpport}, "MQTT", %sendhash_cached);
-			if (!$udpresp) {
-				$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via cached api).";
-				$health_state{udpsend}{error} = 1;
-				$health_state{udpsend}{count} += 1;
+			foreach( @toMS ) {
+				$udpresp = LoxBerry::IO::msudp_send($_, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
+				if (!$udpresp) {
+					$health_state{udpsend}{message} = "There were errors sending values via UDP to Miniserver $_ (via non-cached api).";
+					$health_state{udpsend}{error} = 1;
+					$health_state{udpsend}{count} += 1;
+				}
+				
+				# Send 0 for Reset-after-send
+				if ( scalar keys %sendhash_resetaftersend > 0 ) {
+					LOGDEB "  UDP: Sending reset-after-send values (delay ".$cfg->{Main}{resetaftersendms}." ms)";
+					Time::HiRes::sleep($cfg->{Main}{resetaftersendms}/1000);
+					$udpresp = LoxBerry::IO::msudp_send($_, $cfg->{Main}{udpport}, "MQTT", %sendhash_resetaftersend);
+				}
+				
+				# Send cached
+				# LOGDEB "  UDP: Sending all other values";
+				$udpresp = LoxBerry::IO::msudp_send_mem($_, $cfg->{Main}{udpport}, "MQTT", %sendhash_cached);
+				if (!$udpresp) {
+					$health_state{udpsend}{message} = "There were errors sending values via UDP to the Miniserver (via cached api).";
+					$health_state{udpsend}{error} = 1;
+					$health_state{udpsend}{count} += 1;
+				}
 			}
 		} else {
 			LOGERR "  UDP: Cannot send. No Miniserver defined, or UDP port missing";
@@ -434,14 +454,16 @@ sub received
 		#LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  $topic, $message);
 		
 		if( $miniservers{$cfg->{Main}{msno}} ) {
-			# LOGDEB "  HTTP: Sending all values";
-			my $httpresp;
-			$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno},  %sendhash_noncached);
-			$httpresp = LoxBerry::IO::mshttp_send_mem($cfg->{Main}{msno},  %sendhash_cached);
-			if ( scalar keys %sendhash_resetaftersend > 0 ) {
-				LOGDEB "  HTTP: Sending reset-after-send values (delay ".$cfg->{Main}{resetaftersendms}." ms)";
-				Time::HiRes::sleep($cfg->{Main}{resetaftersendms}/1000);
-				$httpresp = LoxBerry::IO::mshttp_send($cfg->{Main}{msno}, %sendhash_resetaftersend);
+			foreach ( @toMS ) {
+				# LOGDEB "  HTTP: Sending all values";
+				my $httpresp;
+				$httpresp = LoxBerry::IO::mshttp_send($_,  %sendhash_noncached);
+				$httpresp = LoxBerry::IO::mshttp_send_mem($_,  %sendhash_cached);
+				if ( scalar keys %sendhash_resetaftersend > 0 ) {
+					LOGDEB "  HTTP: Sending reset-after-send values (delay ".$cfg->{Main}{resetaftersendms}." ms)";
+					Time::HiRes::sleep($cfg->{Main}{resetaftersendms}/1000);
+					$httpresp = LoxBerry::IO::mshttp_send($_, %sendhash_resetaftersend);
+				}
 			}
 		} else {
 			LOGERR "  HTTP: Cannot send: No Miniserver defined";
@@ -624,8 +646,38 @@ sub read_config
 				}
 			}
 			@subscriptions = @checked_subscriptions;
-			
+						
 			push @subscriptions, $gw_topicbase . "#";
+			
+			# Ordering is required for toMS based on number of topics
+			LOGINF "Ordering subscriptions by topic level";
+			@subscriptions = sort { ($b=~tr/\///) <=> ($a=~tr/\///) } @subscriptions;
+			
+			# Fill up the subscriptions_toms array;
+			my @default_arr = ( $cfg->{Main}->{msno} );
+			
+			LOGINF "Reading your config about what topics to send to what Miniserver";
+			foreach my $sub ( @subscriptions ) {
+				my $sub_set;
+				foreach my $cfg_sub ( @{$cfg->{subscriptions}} ) {
+					if( $sub eq $cfg_sub->{id} ) {
+						if( scalar @{$cfg_sub->{toMS}} > 0 ) {
+							push @subscriptions_toms, $cfg_sub->{toMS};
+							# LOGDEB "Read Subscription $sub: toMS: " . join( ",", @{$cfg_sub->{toMS}});
+						} else {
+							push @subscriptions_toms, \@default_arr;
+							# LOGDEB "Subscription $sub: toMS: " . join( ",", @default_arr) . " (default)";
+						}
+						$sub_set = 1;
+						last;
+					}
+				}
+				if( ! $sub_set ) {
+					push @subscriptions_toms, \@default_arr;
+					# LOGDEB "No MS set - using " . $cfg->{Main}->{msno} . "(" . join(',', @{$default_arrref}) . ")";
+				}
+			}
+			
 			# Re-Subscribe new topics
 			foreach my $topic (@subscriptions) {
 				LOGINF "Subscribing $topic";
