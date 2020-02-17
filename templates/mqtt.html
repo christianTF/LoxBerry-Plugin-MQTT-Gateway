@@ -133,6 +133,7 @@
 
 	<div class="wide">MQTT Subscriptions</div>
 	<p>Subscriptions are the topics of MQTT devices that are relayed to the Miniserver. A # sign symbols a joker in MQTT. Use exactly the topic(s) provided by the device vendor.</p> 
+	<p style="font-size:80%"><i>Advanced feature:</i> Send specific subscriptions to specific Miniservers - after the subscription, use a pipe | symbol followed by a list of Miniserver numbers (from the Miniserver widget), e.g. <span class="mono">shellies/#|2</span> or <span class="mono">shellies/#|2,3</span>. Without pipe, the default Miniserver from the <i>Settings</i> page is used.</p>
 <!-- 	<div data-role="fieldcontain"> -->
 <!--		<label for="subscriptions">MQTT subscriptions <p class="hint">One subscription topic per line. For Shelly devices, use <span class="mono">shellies/#</span></p>
 		<p id="invalidTopics" class="hint" style="color:red"></p>
@@ -825,19 +826,9 @@
 				subscriptions.push(subscription);
 			});
 			
-			
-			// Push sub's to subscriptions array, push toMS to array
-			
-			
-			
 			cfg.subscriptions = subscriptions;
 			// console.log("Subscriptions Array", cfg.subscriptions);
 		} 
-		<!-- else if (id == "subToMs") { -->
-			
-		
-		
-		<!-- } -->
 		else if (id == "conversions") {
 			// console.log("conversions content",  $("#"+id).val());
 			cfg.conversions = $.trim($("#"+id).val()).split("\n");
