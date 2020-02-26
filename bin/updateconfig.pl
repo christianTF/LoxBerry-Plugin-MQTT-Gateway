@@ -112,6 +112,13 @@ sub update_config
 		LOGINF "Setting Reset-After-Send delay to " . $cfg->{Main}{resetaftersendms} . " milliseconds";
 		$changed++;
 		}
+	if(! defined $cfg->{Main}{toMS_delimiter}) { 
+		$cfg->{Main}{toMS_delimiter} = '|'; 
+		LOGINF "Setting delimiter for subscription miniserver list to " . $cfg->{Main}{toMS_delimiter};
+		$changed++;
+		}
+
+
 		
 	# Migrate credentials from mqtt.json to cred.json
 	if(defined $cfg->{Main}{brokeruser} or defined $cfg->{Main}{brokerpass}) {
