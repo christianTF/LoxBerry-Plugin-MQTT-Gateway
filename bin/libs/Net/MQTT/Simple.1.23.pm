@@ -1,14 +1,9 @@
 package Net::MQTT::Simple;
 
-# This version is modified for LoxBerry. The _send function contains a
-# Time::HiRes::sleep(0.004) as Mosquitto drops connection on rapid publish
-
-
 use strict;
 use warnings;
-use Time::HiRes;
 
-our $VERSION = '1.24-LB';
+our $VERSION = '1.23';
 
 # Please note that these are not documented and are subject to change:
 our $KEEPALIVE_INTERVAL = 60;
@@ -64,7 +59,6 @@ sub import {
 
     $global = $class->new($server);
 
-    no strict 'refs';
     *{ (caller)[0] . "::publish" } = \&publish;
     *{ (caller)[0] . "::retain"  } = \&retain;
 }
@@ -194,11 +188,9 @@ sub _send {
     my $socket = $self->{socket} or return;
 
     syswrite $socket, $data
-		or $self->_drop_connection;  # reconnect on next message
-	# print STDERR "syswrite: sent $result length: $len\n";
-	$self->{last_send} = time;
-	Time::HiRes::sleep(0.004);
-    
+        or $self->_drop_connection;  # reconnect on next message
+
+    $self->{last_send} = time;
 }
 
 sub _send_connect {
@@ -252,8 +244,8 @@ sub _send_unsubscribe {
 
     utf8::encode($_) for @topics;
 
-    # Hardcoded "packet identifier" \0\0x01 for now; see above.
-    $self->_send("\xa2" . _prepend_variable_length("\0\x01" .
+    # Hardcoded "packet identifier" \0\0 for now.
+    $self->_send("\xa2" . _prepend_variable_length("\0\0" .
         pack("(n/a*)*", @topics)
     ));
 }
