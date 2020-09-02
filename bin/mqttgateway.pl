@@ -59,6 +59,9 @@ my %conversions;
 # Reset After Send Topics
 my %resetAfterSend;
 
+# Do Not Forward Topics
+my %doNotForward;
+
 # Hash to store all submitted topics
 my %relayed_topics_udp;
 my %relayed_topics_http;
@@ -326,8 +329,22 @@ sub received
 	my %sendhash_resetaftersend;
 	
 	foreach my $sendtopic (keys %sendhash) {
+		# Generate $sendtopic with / replaced by _ 
 		my $sendtopic_underlined = $sendtopic;
 		$sendtopic_underlined =~ s/\//_/g;
+		
+		# Skip doNotForward topics
+		if (exists $cfg->{doNotForward}->{$sendtopic_underlined} ) {
+			LOGDEB "   $sendtopic (incoming value $sendhash{$sendtopic}) skipped - do not forward enabled";
+			if( is_enabled($cfg->{Main}{use_http}) ) {
+				# Generate data for Incoming Overview
+				$relayed_topics_http{$sendtopic_underlined}{timestamp} = time;
+				$relayed_topics_http{$sendtopic_underlined}{message} = $sendhash{$sendtopic};
+				$relayed_topics_http{$sendtopic_underlined}{originaltopic} = $sendtopic;
+			}
+			next;
+		}
+		
 		if (exists $cfg->{Noncached}->{$sendtopic_underlined} or exists $resetAfterSend{$sendtopic_underlined}) {
 			LOGDEB "   $sendtopic is non-cached";
 			$sendhash_noncached{$sendtopic} = $sendhash{$sendtopic};
@@ -376,7 +393,6 @@ sub received
 			$relayed_topics_udp{$sendtopic}{timestamp} = time;
 			$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
 			$relayed_topics_udp{$sendtopic}{originaltopic} = $topic;
-			LOGDEB "  UDP: Preparing $sendtopic";
 		}	
 		
 		my $udpresp;
@@ -386,6 +402,7 @@ sub received
 			# LOGDEB "  UDP: Sending all uncached values";
 			
 			foreach( @toMS ) {
+				LOGDEB "  UDP: Sending to MS $_";
 				$udpresp = LoxBerry::IO::msudp_send($_, $cfg->{Main}{udpport}, "MQTT", %sendhash_noncached);
 				if (!$udpresp) {
 					$health_state{udpsend}{message} = "There were errors sending values via UDP to Miniserver $_ (via non-cached api).";
@@ -766,6 +783,19 @@ sub read_config
 			}
 		}
 		
+		# Do Not Forward
+		LOGINF "Processing Do Not Forward";
+		undef %doNotForward;
+		if (exists $cfg->{doNotForward}) {
+			LOGINF "Adding user defined Do Not Forward";
+			foreach my $topic ( keys %{$cfg->{doNotForward}}) {
+				if (LoxBerry::System::is_enabled($cfg->{doNotForward}->{$topic}) ) {
+					$doNotForward{$topic} = 1;
+					LOGDEB "doNotForward: $topic";
+				}
+			}
+		}
+		
 		# Clean UDP socket
 		create_in_socket();
 	
@@ -933,6 +963,7 @@ sub save_relayed_states
 	$relayjson->{http} = \%relayed_topics_http;
 	$relayjson->{Noncached} = $cfg->{Noncached};
 	$relayjson->{resetAfterSend} = \%resetAfterSend;
+	$relayjson->{doNotForward} = \%doNotForward;
 	$relayjson->{health_state} = \%health_state;
 	$relayjsonobj->write();
 	undef $relayjsonobj;

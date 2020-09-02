@@ -370,6 +370,16 @@
 					// console.log("Text is selected");
 					return; 
 				}
+				
+				// Prefill non-existing elements in config
+				if ( !("resetAfterSend" in resp ) )
+					resp[ "resetAfterSend" ] = null;
+				if ( !("Noncached" in resp ) )
+					resp[ "Noncached" ] = null;
+				if ( !("doNotForward" in resp ) )
+					resp[ "doNotForward" ] = null;
+				
+				
 				// console.log(logtime(), "RELAYED_TOPICS Generate_http_table");
 				generate_http_table(resp);
 				// console.log(logtime(), "RELAYED_TOPICS Generate_udp_table");
@@ -382,6 +392,10 @@
 				$(".resetAfterSend").bind( "change", function(event, ui) {
 					checkbox_resetAfterSend(event);
 				});
+				$(".doNotForward").bind( "change", function(event, ui) {
+					checkbox_doNotForward(event);
+				});
+				
 				// console.log(logtime(), "RELAYED_TOPICS FINISHED");
 				
 		  })
@@ -454,7 +468,19 @@
 					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
 				http_row+= '</td>\n';
 								
-				http_row+= '<td>' + content.message; 
+				var doNotForward;
+				if( resp.doNotForward !== null && topic.replace(/\//g, "_") in resp.doNotForward ) {
+					doNotForward = "checked";
+				console.log(topic, "is set to Do-Not-Forward");
+				}
+				http_row+= '<td>';
+				if( doNotForward ) 
+					http_row+= '<i><s style="text-shadow:none">';
+				http_row+= content.message; 
+				if( doNotForward ) 
+					http_row+= '</s></i>';
+				
+				
 				if( $("#topics_show_advanced").prop('checked') == true ) {
 					
 					var uncached;
@@ -469,8 +495,10 @@
 						resetAfterSend = "checked";
 					// console.log(topic, "is reset after send");
 					}
-					http_row+= '<label><input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label></fieldset>';
+					http_row+= '<label><input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label>';
 								
+					http_row+= '<label><input type="checkbox" name="http_do_not_forward_'+topic+'" id="http_do_not_forward_'+topic+'"data-mini="true" class="doNotForward" ' + doNotForward +'>Do not forward</label></fieldset>';
+				
 				}
 				http_row+= '</td>\n';
 				
@@ -535,7 +563,14 @@
 					// console.log(topic, "is reset after send");
 					}
 					udp_row+= '<label><input type="checkbox" name="udp_reset_after_send_'+topic+'" id="udp_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label></fieldset>';
-								
+					
+					var doNotForward;
+					if( resp.doNotForward !== null && topic.replace(/\//g, "_") in resp.doNotForward ) {
+						doNotForward = "checked";
+					// console.log(topic, "is reset after send");
+					}
+					udp_row+= '<label><input type="checkbox" name="udp_do_not_forward_'+topic+'" id="udp_do_not_forward_'+topic+'"data-mini="true" class="doNotForward" ' + doNotForward +'>Do not forward</label></fieldset>';
+		
 				}
 				udp_row+= '</td>'
 				
@@ -620,6 +655,29 @@
 			$.post( 'index.cgi', {
 				ajax: 'resetAfterSend',
 				resetAfterSend: is_checked,
+				topic: checkboxtarget })
+			.done(function(resp) {
+				// console.log( "ajax_post", "success", resp );
+				return; 
+			});
+		};
+		
+		function checkbox_doNotForward(event) {
+			var checkboxtarget;
+			if (event.currentTarget.id.startsWith("http_do_not_forward_") == true)
+				checkboxtarget = event.currentTarget.id.slice(20).replace(/\//g, '\_');
+			else if (event.currentTarget.id.startsWith("udp_do_not_forward_") == true)
+				checkboxtarget = event.currentTarget.id.slice(19).replace(/\//g, '\_');
+			else
+				return;
+			
+			// var checkboxtarget = event.currentTarget.id.replace(/\//g, '\_');
+			var is_checked = event.currentTarget.checked;
+			// console.log("checkbox_reset_after_send", checkboxtarget, "Checked", is_checked);
+			
+			$.post( 'index.cgi', {
+				ajax: 'doNotForward',
+				doNotForward: is_checked,
 				topic: checkboxtarget })
 			.done(function(resp) {
 				// console.log( "ajax_post", "success", resp );

@@ -174,6 +174,26 @@ if( $q->{ajax} ) {
 		$json->write();
 	
 	}
+	
+	# Set doNotForward for a topic
+	if( $q->{ajax} eq "doNotForward" ) {
+		require LoxBerry::JSON;
+		my $json = LoxBerry::JSON->new();
+		my $cfg = $json->open(filename => $cfgfile);
+		if (!$cfg) {
+			exit;
+		}
+		
+		print STDERR "Do-Not-Forward topic: " . $q->{topic} . " is now " . $q->{doNotForward} . "\n";
+		if(!is_enabled($q->{doNotForward})) {
+			delete $cfg->{doNotForward}->{$q->{topic}};
+		} else {
+			$cfg->{doNotForward}->{$q->{topic}} = $q->{doNotForward};
+		}
+		$json->write();
+	
+	}
+	
 
 
 	
