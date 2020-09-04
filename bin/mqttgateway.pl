@@ -365,11 +365,27 @@ sub received
 	
 	# LOGDEB "Topic '$topic', " . scalar(@subscriptions) . " Subscriptions, " . scalar(@subscriptions_toms) . " toms elements";
 	
+	use constant SUBMATCH_FIND => '\+'; 				# Quoted '+'
+	use constant SUBMATCH_REPLACE => '\[\^\/\]\+'; 		# Quoted '[^/]+'
+		
 	foreach ( @subscriptions ) {
-		$_ =~ s$\\+$[^/]+$;
-		$_ =~ s$#$.+$;
-		# LOGDEB "Regex to query: $_";
-		my $re = qr/$_/;
+		my $regex = $_; 
+		# LOGDEB "$_ Regex 0: " . $regex;
+		
+		## Eval + in subscription
+		$regex =~ s/SUBMATCH_FIND/SUBMATCH_REPLACE/g;
+		$regex =~ s/\\//g;								# Remoce quotation
+		# LOGDEB "$_ Regex 1: " . $regex;
+		
+		## Eval # in subscription
+		if( $regex eq '#' ) {							# If subscription is only #, this is a "match-all"
+			# LOGDEB "-->Regex is #: $regex";
+			$regex = ".+";
+		} elsif ( substr($regex, -1) eq '#' ) {			# If subscriptipn ends with #, also fully accept the last hierarchy ( topic test is matched by test/# ) 
+			$regex = substr($regex, 0, -2) . '.*';
+		}
+		# LOGDEB "$_ Regex to query: $regex";
+		my $re = qr/$regex/;
 		if( $topic =~ /$re/ ) {
 			@toMS = @{$subscriptions_toms[$idx]};
 			# LOGDEB "$_ matches $topic, send to MS " . join(",", @toMS);
