@@ -1,0 +1,118 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use LoxBerry::JSON;
+
+my %health;
+my @text;
+
+my $gw_topicbase = lbhostname() . "/mqttgateway/";
+my $datafile = "/dev/shm/mqttgateway_topics.json";
+
+$health{desc} = "Checks the status of broker and MQTT Gateway";
+
+# Parse commandline options
+my $option = shift @ARGV;
+if( $option ne "check" ) {
+	exit;
+}
+
+# Check binary running
+my $mqttpid = trim(`pgrep mqttgateway.pl`) ;
+
+# Read healthstate from mqttgateway
+my $relayjsonobj = LoxBerry::JSON->new();
+my $relayjson = $relayjsonobj->open( filename => $datafile, readonly => 1 );
+
+# Generate state and text
+if ( $mqttpid eq "" ) {
+	setstatus(3);
+	push @text, "MQTT Gateway not running (no PID). Last known status:";
+} else {
+	setstatus(5);
+	push @text, "MQTT Gateway running (PID $mqttpid). Current status:";
+}
+
+if( $relayjson->{health_state} ) {
+	# Broker state
+	if( $relayjson->{health_state}->{broker}->{error} > 0 ) {
+		setstatus(3);
+	} else {
+		setstatus(5);
+	}
+	push @text, "Broker state: " . $relayjson->{health_state}->{broker}->{message} . ".";
+	
+	# Config state
+	if( $relayjson->{health_state}->{configfile}->{error} > 0 ) {
+		setstatus(3);
+	} else {
+		setstatus(5);
+	}
+	push @text, "Config state: " . $relayjson->{health_state}->{configfile}->{message} . ".";
+	
+	# UDPIN state
+	if( $relayjson->{health_state}->{udpinsocket}->{error} > 0 ) {
+		setstatus(3);
+	} else {
+		setstatus(5);
+	}
+	push @text, "UDPIN state: " . $relayjson->{health_state}->{udpinsocket}->{message} . ".";
+	
+}
+
+# Check keepaliveepoch
+use LoxBerry::IO;
+my $rcvdtopic;
+my $keepaliveepoch;
+my $mqttcred = LoxBerry::IO::mqtt_connectiondetails();
+# print $mqttcred->{brokerhost}.':'.$mqttcred->{brokerport};
+use Net::MQTT::Simple;
+$ENV{MQTT_SIMPLE_ALLOW_INSECURE_LOGIN} = 1;
+eval {
+	my $mqtt = Net::MQTT::Simple->new($mqttcred->{brokerhost}.':'.$mqttcred->{brokerport});
+	if($mqttcred->{brokeruser}) {
+		$mqtt->login($mqttcred->{brokeruser}, $mqttcred->{brokerpass});
+		print STDERR "Login\n";
+	}
+	print STDERR "Topic: " . $gw_topicbase . "keepaliveepoch"."\n";
+	$mqtt->subscribe($gw_topicbase . "keepaliveepoch", sub { ($rcvdtopic, $keepaliveepoch) = @_; } );
+	$mqtt->tick(1);
+	$mqtt->tick(1);
+};
+if($@) {
+	setstatus(3);
+	push @text, "Could not connect to your configured MQTT broker.";
+} else {
+	if( ! $keepaliveepoch ) {
+		setstatus(3);
+		push @text, "Could not get keepaliveepoch from your broker.";
+	} elsif( $keepaliveepoch < (time-300) ) {
+		setstatus(3);
+		push @text, "Your keepaliveepoch is older than 5 minutes and seems not to be refreshed.";
+	} else {
+		setstatus(5);
+		push @text, "Your keepaliveepoch is current.";
+	}
+}
+
+sub setstatus
+{
+	my $newstatus = shift;
+	exit if (!$newstatus);
+	if( !$health{status} or $newstatus < $health{status} ) {
+		$health{status} = $newstatus;
+	}
+}
+
+
+	
+END
+{
+	if( @text ) {
+		$health{result} = join ' ', @text;
+	}
+	
+	if ( %health ) {
+		print encode_json( \%health ) . "\n";
+	}
+}
