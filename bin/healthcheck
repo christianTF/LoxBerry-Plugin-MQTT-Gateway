@@ -13,7 +13,7 @@ $health{desc} = "Checks the status of broker and MQTT Gateway";
 
 # Parse commandline options
 my $option = shift @ARGV;
-if( $option ne "check" ) {
+if( !$option or $option ne "check" ) {
 	exit;
 }
 
@@ -76,8 +76,10 @@ eval {
 	}
 	print STDERR "Topic: " . $gw_topicbase . "keepaliveepoch"."\n";
 	$mqtt->subscribe($gw_topicbase . "keepaliveepoch", sub { ($rcvdtopic, $keepaliveepoch) = @_; } );
-	$mqtt->tick(1);
-	$mqtt->tick(1);
+	foreach my $i (1..30) {
+		$mqtt->tick(0.2);
+		last if ($keepaliveepoch);
+	}
 };
 if($@) {
 	setstatus(3);
