@@ -1,16 +1,14 @@
 package Net::MQTT::Simple;
 
 # This version is modified for LoxBerry. The _send function contains a
-# Time::HiRes::sleep(0.01) as Mosquitto drops connection on rapid publish
-# https://github.com/Juerd/Net-MQTT-Simple/issues/11
+# Time::HiRes::sleep(0.004) as Mosquitto drops connection on rapid publish
 
 
 use strict;
 use warnings;
 use Time::HiRes;
 
-our $VERSION = '1.24-3LB';
-our $SENDDELAY = 0.017;
+our $VERSION = '1.24-LB';
 
 # Please note that these are not documented and are subject to change:
 our $KEEPALIVE_INTERVAL = 60;
@@ -28,11 +26,6 @@ BEGIN {
       eval { require IO::Socket::IP; 1 }   ? sub { "IO::Socket::IP" }
     : eval { require IO::Socket::INET; 1 } ? sub { "IO::Socket::INET" }
     : die "Neither IO::Socket::IP nor IO::Socket::INET found";
-
-	# require IO::Socket::IP; *_socket_class = sub { "IO::Socket::IP" };
-	# require IO::Socket::INET; *_socket_class = sub { "IO::Socket::INET" };
-
-
 }
 
 sub _default_port { 1883 }
@@ -194,11 +187,7 @@ sub _prepend_variable_length {
 
 sub _send {
     my ($self, $data) = @_;
-	
-	if( $self->{last_send} and $self->{last_send}+$SENDDELAY > Time::HiRes::time() ) {
-		Time::HiRes::sleep($SENDDELAY);
-	}
-	
+
     $self->_connect unless exists $self->{skip_connect};
     delete $self->{skip_connect};
 
@@ -206,9 +195,9 @@ sub _send {
 
     syswrite $socket, $data
 		or $self->_drop_connection;  # reconnect on next message
-	#print STDERR "syswrite: sent $result bytes: $!\n";
-	$self->{last_send} = Time::HiRes::time;
-	
+	# print STDERR "syswrite: sent $result length: $len\n";
+	$self->{last_send} = time;
+	Time::HiRes::sleep(0.004);
     
 }
 
