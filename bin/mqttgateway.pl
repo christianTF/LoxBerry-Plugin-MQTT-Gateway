@@ -171,22 +171,30 @@ sub udpin
 	my ($command, $udptopic, $udpmessage);
 	my $contjson;
 	
-	# Check for json content
-	eval {
-			$contjson = from_json($udpmsg);
-	};
-	if($@) {
-		# Not a json message
-		$udpmsg = trim($udpmsg);
-		($command, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 3);
-		
+	# Check for Loxone Logger message
+	if ( $udpmsg =~ /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2});(.*);(.*)/ ) {
+		# LOGDEB "Regex matches: $1 - $2 - $3";
+		my ($udpremhost_short) = split(/\./, $udpremhost);
+		$command = 'retain';
+		$udptopic = 'logger/' . $udpremhost_short . '/' . $2;
+		$udpmessage = trim($3);
 	} else {
-		# json message
-		$udptopic = $contjson->{topic};
-		$udpmessage = $contjson->{value};
-		$command = is_enabled($contjson->{retain}) ? "retain" : "publish";
+		# Check for json content
+		eval {
+				$contjson = from_json($udpmsg);
+		};
+		if($@) {
+			# Not a json message
+			$udpmsg = trim($udpmsg);
+			($command, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 3);
+			
+		} else {
+			# json message
+			$udptopic = $contjson->{topic};
+			$udpmessage = $contjson->{value};
+			$command = is_enabled($contjson->{retain}) ? "retain" : "publish";
+		}
 	}
-
 	# Check incoming message
 	
 	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne "reconnect" and lc($command) ne "save_relayed_states") {
@@ -958,30 +966,19 @@ sub save_relayed_states
 
 	}
 	
-	
-	
-	
-	
-	
 	# LOGINF "Relayed topics are saved on RAMDISK for UI";
 	unlink $datafile;
 	my $relayjsonobj = LoxBerry::JSON::JSONIO->new();
 	my $relayjson = $relayjsonobj->open(filename => $datafile);
 
 	# Delete topics that are empty
-	
-	
-	
-	
-	
-	
-	
 	$relayjson->{udp} = \%relayed_topics_udp;
 	$relayjson->{http} = \%relayed_topics_http;
 	$relayjson->{Noncached} = $cfg->{Noncached};
 	$relayjson->{resetAfterSend} = \%resetAfterSend;
 	$relayjson->{doNotForward} = \%doNotForward;
 	$relayjson->{health_state} = \%health_state;
+	
 	$relayjsonobj->write();
 	undef $relayjsonobj;
 
