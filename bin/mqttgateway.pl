@@ -277,7 +277,7 @@ sub received
 			undef $@;
 			eval {
 				if( ref($contjson) eq "ARRAY" ) {
-					my %tmphash = map { my $idx++; $idx => $_ } @$contjson;
+					my %tmphash = map { $_ => 1 } @$contjson;
 					$contjson = \%tmphash;
 					LOGDEB "Plain json array was converted to hash";
 				}
