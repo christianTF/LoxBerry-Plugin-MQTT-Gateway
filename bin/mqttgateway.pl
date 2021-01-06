@@ -276,7 +276,12 @@ sub received
 			$is_json = 1;
 			undef $@;
 			eval {
-			
+				if( ref($contjson) eq "ARRAY" ) {
+					my %tmphash = map { my $idx++; $idx => $_ } @$contjson;
+					$contjson = \%tmphash;
+					LOGDEB "Plain json array was converted to hash";
+				}
+				
 				my $flatterer = new Hash::Flatten({
 					HashDelimiter => '_', 
 					ArrayDelimiter => '_',
