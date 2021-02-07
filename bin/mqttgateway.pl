@@ -14,8 +14,12 @@ use Net::MQTT::Simple;
 use LoxBerry::JSON::JSONIO;
 use Hash::Flatten;
 use File::Monitor;
+use File::Find::Rule;
 
 use Data::Dumper;
+
+# use Apache2::Reload;
+# use Module::Reload;
 
 $SIG{INT} = sub { 
 	LOGTITLE "MQTT Gateway interrupted by Ctrl-C"; 
@@ -76,6 +80,11 @@ my $udpMAXLEN = 10240;
 		
 # Own MQTT Gateway topic
 my $gw_topicbase;
+
+# Transformer scripts
+my %trans_udpin;
+my %trans_mqttin;
+my $trans_monitor = File::Monitor->new();
 
 print "Configfile: $cfgfile\n";
 while (! -e $cfgfile) {
@@ -160,6 +169,22 @@ while(1) {
 sub udpin
 {
 
+	# udpin supports already a bunch of incoming formats and keywords, that must be processed in the correct order
+	#
+	# "save_relayed_states"  .... Save topics to ramdisk
+	# "reconnect"			 .... Resets the caching timer
+	# "timestamp;name;value" .... Loxone "syslog" message
+	# "{ .... }" 			 .... Data as a json message
+	# "publish transform my/topic data" .... calls the 'transform' transformer and publishes the result
+	# "retain transform my/topic data" .... calls the 'transform' transformer and publishes the result with retain
+	# "publish my/topic data".... Publish a message
+	# "retain my/topic data" .... Publish a message with retain
+	# "my/topic data"		 .... Legacy format of publish
+	
+	
+	# Data to publish are stored in an array holding a hash
+	my @publish_arr;
+	
 	my($port, $ipaddr) = sockaddr_in($udpinsock->peername);
 	$udpremhost = gethostbyaddr($ipaddr, AF_INET);
 	# Skip log for relayed_state requests
@@ -168,7 +193,7 @@ sub udpin
 	}
 	## Send to MQTT Broker
 			
-	my ($command, $udptopic, $udpmessage);
+	my ($command, $udptopic, $udpmessage, $transformer);
 	my $contjson;
 	
 	# Check for Loxone Logger message
@@ -186,64 +211,109 @@ sub udpin
 		if($@) {
 			# Not a json message
 			$udpmsg = trim($udpmsg);
-			($command, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 3);
+			($command, $transformer, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 4);
 			
 		} else {
 			# json message
 			$udptopic = $contjson->{topic};
 			$udpmessage = $contjson->{value};
 			$command = is_enabled($contjson->{retain}) ? "retain" : "publish";
+			$transformer = $contjson->{transform};
 		}
 	}
-	# Check incoming message
 	
-	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne "reconnect" and lc($command) ne "save_relayed_states") {
-		# Old syntax - move around the values
-		$udpmessage = trim($udptopic . " " . $udpmessage);
+	
+	
+	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne 'reconnect' and lc($command) ne 'save_relayed_states') {
+		# Old syntax - move around the values. Old syntax does not support transformers.
+		no warnings;
+		$udpmessage = trim($transformer . ' ' . $udptopic . ' ' . $udpmessage);
 		$udptopic = $command;
 		$command = 'publish';
-	}
-	my $udptopicPrint = $udptopic;
-	if($udptopic) {
-		utf8::decode($udptopic);
+		$transformer = undef;
 	}
 	
 	$command = lc($command);
-	if($command eq 'publish') {
-		LOGDEB "Publishing: '$udptopicPrint'='$udpmessage'";
-		eval {
-			$mqtt->publish($udptopic, $udpmessage);
-		};
-		if($@) {
-			LOGERR "Catched exception on publishing to MQTT: $!";
-		}
-	} elsif($command eq 'retain') {
-		LOGDEB "Publish (retain): '$udptopicPrint'='$udpmessage'";
-		eval {
-			$mqtt->retain($udptopic, $udpmessage);
+
+
+
+	# Check if we need to run a transformation
+	if( $transformer ) {
+		LOGDEB "Checking if transformer requested";
+		if (exists $trans_udpin{$transformer}) {
+			LOGOK "Transformer $transformer found";
 			
-			# This code may only work, when the topic is not subscribed anymore (as the gateway receives the publish itself)
-			if(!$udpmessage) {
-				LOGDEB "Delete $udptopic from memory because of empty message";
-				delete $relayed_topics_http{$udptopic};
-				delete $relayed_topics_udp{$udptopic};
-			}
-		};
-		if($@) {
-			LOGERR "Catched exception on publishing (retain) to MQTT: $!";
+		} else {
+			# Without a known transformer, we need to swap data
+			$udpmessage = $udptopic . ' ' . $udpmessage;
+			$udptopic = $transformer;
+			undef $transformer;
 		}
-	} elsif($command eq 'reconnect') {
-		LOGOK "Forcing reconnection and retransmission to Miniserver";
-		$nextconfigpoll = 0;
-		undef %plugindirs;
-		$LoxBerry::IO::mem_sendall = 1;
-	} elsif($command eq 'save_relayed_states') {
-		# LOGOK "Save relayed states triggered by udp request";
-		save_relayed_states();
-	} else {
-		LOGERR "Unknown incoming UDP command";
 	}
+
+	# Now, the input is converted to a hash and pushed to our send array
+	my %dataHash = (
+		command => $command,
+		transformer => $transformer,
+		udptopic => $udptopic,
+		udpmessage => $udpmessage
+	);
 	
+	push @publish_arr, \%dataHash;
+	
+	# Process transformer
+	if( $transformer ) {
+		@publish_arr = trans_process( \@publish_arr );
+	}
+
+	foreach ( @publish_arr ) {
+		# LOGDEB "Process UDP DATA\n".Dumper($_);
+		
+		$command = $_->{command};
+		$udptopic = $_->{udptopic};
+		$udpmessage = $_->{udpmessage};
+	
+		my $udptopicPrint = $udptopic;
+		if($udptopic) {
+			utf8::decode($udptopic);
+		}
+
+		if($command eq 'publish') {
+			LOGDEB "Publishing: '$udptopicPrint'='$udpmessage'";
+			eval {
+				$mqtt->publish($udptopic, $udpmessage);
+			};
+			if($@) {
+				LOGERR "Catched exception on publishing to MQTT: $!";
+			}
+		} elsif($command eq 'retain') {
+			LOGDEB "Publish (retain): '$udptopicPrint'='$udpmessage'";
+			eval {
+				$mqtt->retain($udptopic, $udpmessage);
+				
+				# This code may only work, when the topic is not subscribed anymore (as the gateway receives the publish itself)
+				if(!$udpmessage) {
+					LOGDEB "Delete $udptopic from memory because of empty message";
+					delete $relayed_topics_http{$udptopic};
+					delete $relayed_topics_udp{$udptopic};
+				}
+			};
+			if($@) {
+				LOGERR "Catched exception on publishing (retain) to MQTT: $!";
+			}
+		} elsif($command eq 'reconnect') {
+			LOGOK "Forcing reconnection and retransmission to Miniserver";
+			$nextconfigpoll = 0;
+			undef %plugindirs;
+			$LoxBerry::IO::mem_sendall = 1;
+		} elsif($command eq 'save_relayed_states') {
+			# LOGOK "Save relayed states triggered by udp request";
+			save_relayed_states();
+		} else {
+			LOGERR "Unknown incoming UDP command";
+		}
+	}
+		
 	# $udpinsock->send("CONFIRM: $udpmsg ");
 
 }
@@ -562,10 +632,24 @@ sub read_config
 			undef %plugindirs;
 			$nextconfigpoll = 0;
 		} );
+		
+		# Monitor transformer files
+		$trans_monitor->watch( {
+			name 		=> $lbpdatadir.'/transform',
+			recurse 	=> 1,
+			callback 	=> {
+				change => sub { 
+					LOGDEB "TRANSFORM FILE CHANGED";
+					trans_reread_directories($lbpdatadir.'/transform'); }
+			}
+		} );
+		trans_reread_directories($lbpdatadir.'/transform');
+		$trans_monitor->scan;
 
 	}
 	
 	my @changes = $monitor->scan;
+	$trans_monitor->scan;
 	
 	if(!defined $cfg or @changes) {
 		$configs_changed = 1;
@@ -976,13 +1060,14 @@ sub save_relayed_states
 	my $relayjsonobj = LoxBerry::JSON::JSONIO->new();
 	my $relayjson = $relayjsonobj->open(filename => $datafile);
 
-	# Delete topics that are empty
 	$relayjson->{udp} = \%relayed_topics_udp;
 	$relayjson->{http} = \%relayed_topics_http;
 	$relayjson->{Noncached} = $cfg->{Noncached};
 	$relayjson->{resetAfterSend} = \%resetAfterSend;
 	$relayjson->{doNotForward} = \%doNotForward;
 	$relayjson->{health_state} = \%health_state;
+	$relayjson->{transformers}{udpin} = \%trans_udpin;
+	$relayjson->{transformers}{mqttin} = \%trans_mqttin;
 	
 	$relayjsonobj->write();
 	undef $relayjsonobj;
@@ -998,6 +1083,172 @@ sub save_relayed_states
 	
 	
 }
+
+sub trans_reread_directories {
+	LOGDEB "trans_reread_directories ";
+	my ($trans_basepath) = shift;
+
+	my @files = File::Find::Rule->file()
+		->name( '*' )
+		->nonempty
+       	->in($trans_basepath.'/shipped/udpin', $trans_basepath.'/custom/udpin');
+	
+	undef %trans_udpin;
+	undef %trans_mqttin;
+	
+	foreach ( @files ) {
+		my $trans_ext = '';
+		my $trans_name = lc( substr( $_, rindex( $_, '/')+1 ) );
+		my $dot_pos = rindex( $trans_name, '.' );
+		$trans_ext = substr ( $trans_name, $dot_pos+1) if $dot_pos != -1;
+		$trans_name = substr( $trans_name, 0, $dot_pos) if $dot_pos != -1; 
+		$trans_name =~ s/ /_/g;
+		LOGDEB "Trans_Name $trans_name: $_";
+		$trans_udpin{$trans_name}{filename} = $_;
+		$trans_udpin{$trans_name}{extension} = $trans_ext;
+		$trans_udpin{$trans_name}{is_perl} =  $trans_ext eq 'pl' or $trans_ext eq 'pm' ? 1 : 0;
+		my $skills = trans_skills( $trans_udpin{$trans_name}{filename} );
+		$trans_udpin{$trans_name}{input} = $skills->{input};
+		$trans_udpin{$trans_name}{output} = $skills->{output};
+		$trans_udpin{$trans_name}{description} = $skills->{description};
+	}
+	
+}
+
+sub trans_process
+{
+	
+	# Data hash variables
+		# command
+		# transformer
+		# udptopic
+		# udpmessage
+	
+	my $data_arr = $_[0];
+	my $data = $data_arr->[0];
+	
+	my @subresponse;
+	my $param;
+	
+	LOGINF "Calling transformer " . $data->{transformer};
+	my $transformer = $data->{transformer};
+	my $command = $data->{command};
+	
+	# Manage INPUT
+	#
+	if( $trans_udpin{$transformer}{input} eq "text" ) {
+		
+		# Transformer text input
+		$param = quotemeta( $data->{udptopic} ) . '#' . quotemeta( $data->{udpmessage} );
+		
+	} elsif( $trans_udpin{$transformer}{input} eq "json" ) {
+		
+		# Transformer json input
+		my %datahash = ( $data->{udptopic} => $data->{udpmessage} );
+		$param = quotemeta( encode_json( \%datahash ) );
+		
+	}
+	
+	# RUN transformer script
+	#
+	my ($exitcode, $output) = execute( $trans_udpin{$transformer}{filename}.' '.$param );
+	
+	# Manage OUTPUT
+	#
+	if( $trans_udpin{$transformer}{output} eq "text" ) {
+		
+		# Transformer text output
+		LOGDEB "Transformer TEXT output:\n".$output;
+		my @stdout = split("\n", $output);
+		foreach ( @stdout ) {
+			my ($topic, $value) = split("#", $_, 2);
+			my %data = ( 
+				command => $command,
+				transformer => $transformer,
+				udptopic => $topic,
+				udpmessage => $value
+			);
+			push @subresponse, \%data;
+		}
+		
+	} elsif( $trans_udpin{$transformer}{output} eq "json" ) {
+		
+		# Transformer json output
+		my $jsonout;
+		eval {
+			$jsonout = decode_json( $output );
+			LOGDEB "Transformer JSON output:\n".$output;
+			# LOGDEB "Transformer OUTPUT: \n". Data::Dumper::Dumper( $jsonout );
+			
+			if ( ref($jsonout) eq "ARRAY" ) {
+				# LOGDEB "OUTPUT is ARRAY";
+				foreach( @$jsonout ) {
+					my @keys = keys %$_;
+					# LOGDEB "   ". $keys[0] . ":" . $_->{$keys[0]};
+					my %data = ( 
+						command => $command,
+						transformer => $transformer,
+						udptopic => $keys[0],
+						udpmessage => $_->{$keys[0]} 
+					);
+					push @subresponse, \%data;
+				}
+			} else {
+				# LOGDEB "OUTPUT is OBJECTLIST";
+				foreach( sort keys %$jsonout ) {
+					# LOGDEB "   ". $_ . ":" . $jsonout->{$_};
+					my %data = ( 
+						command => $command,
+						transformer => $transformer,
+						udptopic => $_,
+						udpmessage => $jsonout->{$_}
+					);
+					push @subresponse, \%data;
+				}
+			}
+		};
+	}
+	
+	return @subresponse;
+	
+}
+
+sub trans_skills
+{
+	my ($filename) = @_;
+	
+	chmod 0774, $filename;
+	
+	my ($exitcode, $output) = execute( "$filename skills" );
+	
+	my %subresponse; 
+	
+	my @stdout = split("\n", $output);
+	foreach ( @stdout ) {
+		my ($param, $value) = split("=", $_);
+		if( $param eq "description" ) {
+			$subresponse{description} = trim($value);
+			next;
+		}
+		if( $param eq "input" ) {
+			$subresponse{input} = trim($value);
+			next;
+		}
+		if( $param eq "output" ) {
+			$subresponse{output} = trim($value);
+			next;
+		}
+	}
+	if( $subresponse{input} ne "json" ) {
+		$subresponse{input} = "text";
+	}
+	if( $subresponse{output} ne "json" ) {
+		$subresponse{output} = "text";
+	}
+	
+	return \%subresponse;
+}
+	
 
 
 END

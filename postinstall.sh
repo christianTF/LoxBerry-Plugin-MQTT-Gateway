@@ -62,12 +62,21 @@ PBIN=$LBPBIN/$PDIR
 
 echo "<INFO> Copy back existing config files"
 cp -f -r /tmp/$PTEMPDIR\_upgrade/config/$PDIR/* $LBHOMEDIR/config/plugins/$PDIR/ 
+echo "<INFO> Copy back existing data files"
+cp -f -r /tmp/$PTEMPDIR\_upgrade/data/$PDIR/transform/custom/* $LBHOMEDIR/data/plugins/$PDIR/transform/custom/
+chmod -R 0774 $LBHOMEDIR/data/plugins/$PDIR/transform/custom/
 
-echo "<INFO> Remove temporary folders"
-rm -f -r /tmp/$PTEMPDIR\_upgrade
+# echo "<INFO> Remove temporary folders"
+# rm -f -r /tmp/$PTEMPDIR\_upgrade
 
 echo "<INFO> Linking Mosquitto log to log folder"
 ln -f -s /var/log/mosquitto/mosquitto.log $PLOG/
+
+echo "<INFO> Creating data folders"
+mkdir "$PDATA/transform/custom/udpin" > /dev/null
+mkdir "$PDATA/transform/custom/mqttin" > /dev/null
+mkdir "$PDATA/transform/shipped/mqttin" > /dev/null
+mkdir "$PDATA/transform/shipped/udpin" > /dev/null
 
 echo "<INFO> Updating configuration"
 sudo $PBIN/updateconfig.pl
