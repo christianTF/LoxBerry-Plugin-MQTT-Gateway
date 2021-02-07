@@ -1,7 +1,8 @@
 #!/usr/bin/php
 <?php
 	if( $argv[1] == 'skills' ) {
-		echo "description=Example of incoming text and outgoing text\n";
+		echo "description=Shelly RGB and WHITE control for RGB/W devices\n";
+		echo "link=https://www.loxwiki.eu/x/_QBABQ\n";
 		echo "input=text\n";
 		echo "output=text\n";
 		exit();
