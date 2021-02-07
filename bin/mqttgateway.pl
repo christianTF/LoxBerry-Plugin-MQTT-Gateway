@@ -1153,7 +1153,7 @@ sub trans_process
 	
 	# RUN transformer script
 	#
-	my ($exitcode, $output) = execute( $trans_udpin{$transformer}{filename}.' '.$param );
+	my ($exitcode, $output) = execute( quotemeta($trans_udpin{$transformer}{filename}).' '.$param );
 	
 	# Manage OUTPUT
 	#
@@ -1221,7 +1221,7 @@ sub trans_skills
 	
 	chmod 0774, $filename;
 	
-	my ($exitcode, $output) = execute( "$filename skills" );
+	my ($exitcode, $output) = execute( quotemeta($filename). " skills" );
 	
 	my %subresponse; 
 	
