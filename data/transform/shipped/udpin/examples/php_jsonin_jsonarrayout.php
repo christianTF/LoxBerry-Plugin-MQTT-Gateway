@@ -2,6 +2,7 @@
 <?php
 	if( $argv[1] == 'skills' ) {
 		echo "description=Example of incoming json and outgoing json data\n";
+		echo "link=https://www.loxwiki.eu/x/mQBABQ\n";
 		echo "input=json\n";
 		echo "output=json\n";
 		exit();

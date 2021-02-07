@@ -2,6 +2,7 @@
 <?php
 	if( $argv[1] == 'skills' ) {
 		echo "description=Example of incoming text and outgoing text\n";
+		echo "link=https://www.loxwiki.eu/x/mQBABQ\n";
 		echo "input=text\n";
 		echo "output=text\n";
 		exit();
