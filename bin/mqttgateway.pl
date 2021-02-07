@@ -1111,6 +1111,8 @@ sub trans_reread_directories {
 		$trans_udpin{$trans_name}{input} = $skills->{input};
 		$trans_udpin{$trans_name}{output} = $skills->{output};
 		$trans_udpin{$trans_name}{description} = $skills->{description};
+		$trans_udpin{$trans_name}{link} = $skills->{link};
+		
 	}
 	
 }
@@ -1228,6 +1230,10 @@ sub trans_skills
 		my ($param, $value) = split("=", $_);
 		if( $param eq "description" ) {
 			$subresponse{description} = trim($value);
+			next;
+		}
+		if( $param eq "link" ) {
+			$subresponse{link} = trim($value);
 			next;
 		}
 		if( $param eq "input" ) {
