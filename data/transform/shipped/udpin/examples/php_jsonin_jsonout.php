@@ -8,6 +8,7 @@
 		exit();
 	}
 	
+	// ---- THIS CAN BE USED ALWAYS ----
 	// Remove the script name from parameters
 	array_shift($argv);
 	// Join together all command line arguments
@@ -17,10 +18,11 @@
 	// Get the first element of the array
 	$topic = array_key_first($dataset);
 	$data = $dataset[$topic];
-		
+	// ----------------------------------
+
 	// Modify the data
 	
-	// We don't need to change the topic, but we can!
+	// We don't need to change the topic, but we can.
 	// And we can multiple data out of one dataset
 	$timetopic = $topic.'/'.'time';
 	$datetopic = $topic.'/'.'date';
@@ -28,16 +30,10 @@
 	// We modify the data (we add the time)
 	$data = $data . ' ('.date('H:i:s').')';
 	
-	// Now print multiple data to stdout
-	
+	// Now we fill our data array
 	$dataarray[$topic] = $data;
 	$dataarray[$timetopic] = date('H:i:s');
 	$dataarray[$datetopic] = date('m.d.y');
 	
 	// Output data as json
-	// echo json_encode( $dataarray );
 	echo json_encode( $dataarray );
-	
-	
-	// Thank you and good bye
-	exit;

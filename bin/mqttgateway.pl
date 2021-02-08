@@ -10,6 +10,9 @@ use strict;
 use IO::Socket;
 use Scalar::Util qw(looks_like_number);
 
+use Proc::CPUUsage;
+use PIDController;
+
 use Net::MQTT::Simple;
 use LoxBerry::JSON::JSONIO;
 use Hash::Flatten;
@@ -47,6 +50,7 @@ my $json_cred;
 my $cfg;
 my $cfg_cred;
 
+my $pollms;
 my $nextconfigpoll;
 my $mqtt;
 
@@ -123,9 +127,17 @@ my $monitor = File::Monitor->new();
 
 read_config();
 create_in_socket();
+
+my $cpu = Proc::CPUUsage->new();
+my $cpu_max = 0.05;
+my $PIDController = new PIDController( P => 50, I => 0.5, D => 1 );
+$PIDController->setWindup(100);
+$PIDController->{setPoint} = $cpu_max*0.9;
+my ($pollmsstarttime, $pollmsendtime);
 	
 # Capture messages
 while(1) {
+	$pollmsstarttime = Time::HiRes::time;
 	if(time>$nextconfigpoll) {
 		if(!$mqtt->{socket}) {
 			LOGWARN "No connection to MQTT broker $cfg->{Main}{brokeraddress} - Check host/port/user/pass and your connection.";
@@ -159,11 +171,17 @@ while(1) {
 	## and send a ping to Miniserver
 	if (time > $nextrelayedstatepoll) {
 		save_relayed_states();
+		eval_pollms();
 		$nextrelayedstatepoll = time+60;
 		$mqtt->retain($gw_topicbase . "keepaliveepoch", time);
+		
+
 	}
 	
-	Time::HiRes::sleep($cfg->{Main}{pollms}/1000);
+	$pollmsendtime = Time::HiRes::time;
+	if ( $pollmsendtime < ($pollmsstarttime+$pollms/1000) ) {
+		Time::HiRes::sleep(  $pollmsstarttime - $pollmsendtime + $pollms/1000 );
+	}
 }
 
 sub udpin
@@ -699,10 +717,10 @@ sub read_config
 		if(! defined $cfg->{Main}{udpport}) { $cfg->{Main}{udpport} = 11883; }
 		if(! defined $cfg->{Main}{brokeraddress}) { $cfg->{Main}{brokeraddress} = 'localhost'; }
 		if(! defined $cfg->{Main}{udpinport}) { $cfg->{Main}{udpinport} = 11884; }
-		if(! defined $cfg->{Main}{pollms}) { $cfg->{Main}{pollms} = 50; }
 		if(! defined $cfg->{Main}{resetaftersendms}) { $cfg->{Main}{resetaftersendms} = 10; }
-		
-		
+		if(! defined $pollms ) {
+			$pollms = defined $cfg->{Main}{pollms} ? $cfg->{Main}{pollms} : 50; 
+		}
 		
 		LOGDEB "JSON Dump:";
 		LOGDEB Dumper($cfg);
@@ -1084,6 +1102,43 @@ sub save_relayed_states
 	
 }
 
+sub eval_pollms {
+	my $usage = $cpu->usage();
+	my $pollpidval;
+	if( !$nextrelayedstatepoll ) {
+		$PIDController = new PIDController( P => 50, I => 0.5, D => 1 );
+		$PIDController->setWindup(100);
+		$PIDController->{setPoint} = $cpu_max*0.9;
+	} else {
+		$pollpidval = $PIDController->update($usage);
+		$pollms -= $pollpidval;
+	}
+
+	# if( $usage > $cpu_max*1.2 ) {
+		# $pollms += 15;
+	# } elsif( $usage > $cpu_max*1.1 ) {
+		# $pollms += 5;
+	# } elsif( $usage < $cpu_max*0.8 ) {
+		# $pollms -= 10;
+	# } elsif( $usage < $cpu_max*0.9 ) {
+		# $pollms -= 5;
+	# }
+	
+	if( $pollms < 1 ) {
+		$pollms = 1;
+	} elsif( $pollms > 50 ) {
+		$pollms = 50;
+	}
+	$mqtt->publish($gw_topicbase . "pollms", int($pollms+0.5));
+	$mqtt->publish($gw_topicbase . "pollcpupct", int($usage*1000+0.5)/10);
+	$mqtt->publish($gw_topicbase . "pollpidval", -1*int($pollpidval*10+0.5)/10);
+	
+	
+	LOGDEB "POLLMS: " . $pollms . " ms";
+}
+	
+
+
 sub trans_reread_directories {
 	LOGDEB "trans_reread_directories ";
 	my ($trans_basepath) = shift;
@@ -1263,6 +1318,16 @@ END
 		$mqtt->retain($gw_topicbase . "status", "Disconnected");
 		$mqtt->disconnect()
 	}
+	
+	eval {
+		if( defined $cfg->{Main}{pollms} and $cfg->{Main}{pollms} != $pollms ) {
+			# Config file
+			$json = LoxBerry::JSON::JSONIO->new();
+			$cfg = $json->open(filename => $cfgfile );
+			$cfg->{Main}{pollms} = $pollms;
+			$json->write();
+		}
+	};
 	
 	if($log) {
 		LOGEND "MQTT Gateway exited";

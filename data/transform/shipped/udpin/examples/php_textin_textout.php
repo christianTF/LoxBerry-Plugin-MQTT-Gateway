@@ -31,6 +31,3 @@
 	echo $topic."#".$data."\n";
 	echo $timetopic."#".date('H:i:s')."\n";
 	echo $datetopic."#".date('m.d.y')."\n";
-	
-	// Thank you and good bye
-	exit;
