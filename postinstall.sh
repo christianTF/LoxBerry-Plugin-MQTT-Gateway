@@ -73,10 +73,10 @@ echo "<INFO> Linking Mosquitto log to log folder"
 ln -f -s /var/log/mosquitto/mosquitto.log $PLOG/
 
 echo "<INFO> Creating data folders"
-mkdir "$PDATA/transform/custom/udpin" > /dev/null
-mkdir "$PDATA/transform/custom/mqttin" > /dev/null
-mkdir "$PDATA/transform/shipped/mqttin" > /dev/null
-mkdir "$PDATA/transform/shipped/udpin" > /dev/null
+mkdir -p "$PDATA/transform/custom/udpin" > /dev/null
+mkdir -p "$PDATA/transform/custom/mqttin" > /dev/null
+mkdir -p "$PDATA/transform/shipped/mqttin" > /dev/null
+mkdir -p "$PDATA/transform/shipped/udpin" > /dev/null
 
 echo "<INFO> Updating configuration"
 sudo $PBIN/updateconfig.pl
