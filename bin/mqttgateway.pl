@@ -130,7 +130,7 @@ create_in_socket();
 
 my $cpu = Proc::CPUUsage->new();
 my $cpu_max = 0.05;
-my $PIDController = new PIDController( P => 50, I => 0.5, D => 1 );
+my $PIDController = new PIDController( P => 50, I => 0.25, D => 1 );
 $PIDController->setWindup(100);
 $PIDController->{setPoint} = $cpu_max*0.9;
 my ($pollmsstarttime, $pollmsendtime);
