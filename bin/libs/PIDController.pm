@@ -1,7 +1,13 @@
 package PIDController;
-$PIDController::VERSION = '0.001';
+$PIDController::VERSION = '0.1';
 # PID Controller in Perl by Christian Fenzl
+# GitHub: https://github.com/christianTF/Perl_PIDController
+
 # Based on Python code from Caner Durmusoglu (https://github.com/ivmech/ivPID/blob/master/PID.py)
+
+# Apache License, Version 2.0
+# http://www.apache.org/licenses/LICENSE-2.0.html
+
 use strict;
 use warnings;
 use Time::HiRes;
