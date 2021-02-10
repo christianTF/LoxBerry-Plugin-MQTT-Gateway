@@ -326,6 +326,18 @@ sub udpin
 			$LoxBerry::IO::mem_sendall = 1;
 		} elsif($command eq 'save_relayed_states') {
 			# LOGOK "Save relayed states triggered by udp request";
+			
+			## How to answer the client with the data?
+			# if( defined $port ) {
+				# use IO::Socket::INET;
+				# my $udpoutsock = new IO::Socket::INET(
+					# PeerAddr => '127.0.0.1',
+					# PeerPort => $port,
+					# Proto => 'udp', Timeout => 1);
+				# print $udpoutsock encode_json( ( http => \%relayed_topics_http ) );
+				# $udpoutsock->close();
+			# }
+	
 			save_relayed_states();
 		} else {
 			LOGERR "Unknown incoming UDP command";
@@ -1078,6 +1090,11 @@ sub save_relayed_states
 	my $relayjsonobj = LoxBerry::JSON::JSONIO->new();
 	my $relayjson = $relayjsonobj->open(filename => $datafile);
 
+	$health_state{stats}{http_relayedcount} = keys %relayed_topics_http;
+	$health_state{stats}{udp_relayedcount} = keys %relayed_topics_udp; 
+	
+	$relayjson->{stats}{http}{relayedcount} = keys %relayed_topics_http;
+	$relayjson->{stats}{udp}{relayedcount} = keys %relayed_topics_udp; 
 	$relayjson->{udp} = \%relayed_topics_udp;
 	$relayjson->{http} = \%relayed_topics_http;
 	$relayjson->{Noncached} = $cfg->{Noncached};
@@ -1086,7 +1103,6 @@ sub save_relayed_states
 	$relayjson->{health_state} = \%health_state;
 	$relayjson->{transformers}{udpin} = \%trans_udpin;
 	$relayjson->{transformers}{mqttin} = \%trans_mqttin;
-	
 	$relayjsonobj->write();
 	undef $relayjsonobj;
 
@@ -1124,10 +1140,10 @@ sub eval_pollms {
 		# $pollms -= 5;
 	# }
 	
-	if( $pollms < 1 ) {
-		$pollms = 1;
-	} elsif( $pollms > 50 ) {
-		$pollms = 50;
+	if( $pollms < 0 ) {
+		$pollms = 0;
+	} elsif( $pollms > 150 ) {
+		$pollms = 150;
 	}
 	$mqtt->publish($gw_topicbase . "pollms", int($pollms+0.5));
 	$mqtt->publish($gw_topicbase . "pollcpupct", int($usage*1000+0.5)/10);
