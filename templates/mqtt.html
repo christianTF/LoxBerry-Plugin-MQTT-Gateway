@@ -359,7 +359,7 @@
 			}
 			
 			// console.log(logtime(), "RELAYED_TOPICS START Request");
-			$.post( 'index.cgi', {
+			$.post( 'ajax_php.php', {
 				ajax: 'relayed_topics',
 				udpinport: udpinport })
 			.done(function(resp) {
@@ -442,14 +442,9 @@
 		
 		function generate_http_table(resp) {
 			
-			var http_count = 0;
-			Object.entries(resp.http).map(([topic, content]) => {
-				http_count++;
-			});
-			$("#http_count").text(http_count);
+			$("#http_count").text(resp.health_state.stats.http_relayedcount);
 			
 			if ( $("#coll_mqtthttp").hasClass('ui-collapsible-collapsed') ) {
-				// console.log("HTTP is collapsed - no need to update");
 				return;
 			}
 			
@@ -458,11 +453,13 @@
 			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
 			$("#http_table > tbody").empty();
 			
+			var http_row;
+			
 			Object.entries(resp.http).map(([topic, content]) => {
 				//console.log(resp);
 				
 				var d = new Date(content.timestamp*1000); 
-				http_row = '<tr>\n';
+				http_row+= '<tr id='+topic+'>\n';
 				http_row+= '<td>' + topic;
 				if( $("#topics_show_advanced").prop('checked') == true ) 
 					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
@@ -509,24 +506,19 @@
 					
 				http_row+= '</div></td>\n';
 				http_row+= '</tr>\n';
-				$("#http_table tbody").append(http_row);
 				
 				
 			});
 			// $("#http_table").trigger('create');
+			$("#http_table tbody").append(http_row);
 			$("#http_table").filterable('refresh');
 		}
 		
 		function generate_udp_table(resp) {
 			
-			var udp_count = 0;
-			Object.entries(resp.udp).map(([topic, content]) => {
-				udp_count++;
-			});
-			$("#udp_count").text(udp_count);
+			$("#udp_count").text(resp.health_state.stats.udp_relayedcount);
 
 			if ( $("#coll_mqttudp").hasClass('ui-collapsible-collapsed') ) {
-				// console.log("UDP is collapsed - no need to update");
 				return;
 			}
 			
@@ -536,10 +528,12 @@
 			
 			$("#udp_table > tbody").empty();
 			
+			var udp_row = undefined;
+			
 			Object.entries(resp.udp).map(([topic, content]) => {
 				var d = new Date(content.timestamp*1000); 
 				
-				udp_row = '<tr>\n';
+				udp_row+= '<tr>\n';
 				udp_row+= '<td>' + topic + '=' + content.message;
 				
 				if( $("#topics_show_advanced").prop('checked') == true ) 
@@ -582,10 +576,11 @@
 				}
 				udp_row+= '</div></td>\n';
 				udp_row+= '</tr>\n';
-				$("#udp_table tbody").append(udp_row);
+				
 			});
 						
 			// $("#udp_table").trigger('create');
+			$("#udp_table tbody").append(udp_row);
 			$("#udp_table").filterable('refresh');
 		}
 		

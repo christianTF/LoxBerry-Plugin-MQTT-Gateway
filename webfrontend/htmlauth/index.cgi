@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use LoxBerry::Web;
+use LoxBerry::System;
 use CGI;
 #require "$lbpbindir/libs/LoxBerry/JSON/JSONIO.pm";
 
@@ -18,7 +18,6 @@ if( $q->{ajax} ) {
 	
 	## Handle all ajax requests 
 	
-	require JSON;
 	require Time::HiRes;
 	my %response;
 	ajax_header();
@@ -27,6 +26,7 @@ if( $q->{ajax} ) {
 	if( $q->{ajax} eq "getpids" ) {
 		pids();
 		$response{pids} = \%pids;
+		require JSON;
 		print JSON::encode_json(\%response);
 	}
 	
@@ -50,6 +50,7 @@ if( $q->{ajax} ) {
 		`cd $lbpbindir ; $lbpbindir/mqttgateway.pl > /dev/null 2>&1 &`;
 		pids();
 		$response{pids} = \%pids;
+		require JSON;
 		print JSON::encode_json(\%response);
 	}
 	
@@ -70,6 +71,7 @@ if( $q->{ajax} ) {
 		} else {
 			print STDERR "MQTT index.cgi: Ajax reconnect FAILED\n";
 		}
+		require JSON;
 		print JSON::encode_json(\%response);
 	}
 	
@@ -128,6 +130,7 @@ if( $q->{ajax} ) {
 		) or print "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
 		
 		my %pub_data = ( topic => $q->{topic}, value => $q->{value}, retain => $q->{retain} );
+		require JSON;
 		$pubdata_json = to_json(\%pub_data);
 		$udpoutsock->send( $pubdata_json );
 		$udpoutsock->close;
@@ -194,12 +197,11 @@ if( $q->{ajax} ) {
 	
 	}
 	
-
-
-	
 	exit;
 
 } else {
+	
+	require LoxBerry::Web;
 	
 	## Normal request (not ajax)
 	
