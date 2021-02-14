@@ -127,15 +127,15 @@ my %miniservers;
 # Create monitor to handle config file changes
 my $monitor = File::Monitor->new();
 
+my $cpu = Proc::CPUUsage->new();
+my $cpu_max;
+my $PIDController = new PIDController( P => 50, I => 0.25, D => 1 );
+my ($pollmsstarttime, $pollmsendtime, $pollmsloopcount, $pollmsproctime);
+
 read_config();
 create_in_socket();
 
-my $cpu = Proc::CPUUsage->new();
-my $cpu_max = 0.05;
-my $PIDController = new PIDController( P => 50, I => 0.25, D => 1 );
-$PIDController->setWindup(100);
-$PIDController->{setPoint} = $cpu_max*0.9;
-my ($pollmsstarttime, $pollmsendtime, $pollmsloopcount, $pollmsproctime);
+
 	
 # Capture messages
 while(1) {
@@ -746,6 +746,22 @@ sub read_config
 		if(! defined $pollms ) {
 			$pollms = defined $cfg->{Main}{pollms} ? $cfg->{Main}{pollms} : 50; 
 		}
+		if(! defined $cpu_max ) {
+			$cpu_max = defined $cfg->{Main}{cpuperf} ? $cfg->{Main}{cpuperf}/100 : 5/100; 
+			$PIDController->setWindup(100);
+			$PIDController->{setPoint} = $cpu_max*0.9;
+			LOGOK "Performance Profile: ".($cpu_max*100)."% CPU usage";
+
+		} 
+		else {
+			if( $cpu_max ne $cfg->{Main}{cpuperf}/100 ) {
+				$cpu_max = defined $cfg->{Main}{cpuperf} ? $cfg->{Main}{cpuperf}/100 : 5/100; 
+				$PIDController->setWindup(100);
+				$PIDController->{setPoint} = $cpu_max*0.9;
+				LOGOK "Performance Profile changed: ".($cpu_max*100)."% CPU usage";
+			}
+		}
+		
 		
 		LOGDEB "JSON Dump:";
 		LOGDEB Dumper($cfg);

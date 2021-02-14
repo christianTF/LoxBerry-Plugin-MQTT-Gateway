@@ -123,6 +123,36 @@
 		<p>If you <b>change</b> user and/or password on the local installation, you have to <b>reconfigure</b> all connected devices too. Start with a safe password to avoid security issues. Store user and pass a second time on a secure place.</p>  
 	
 	</div>
+	
+	<div data-role='collapsible' id='coll_mqtthttp' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
+		<h2>Still more settings</h2>
+		
+		<div>
+		<fieldset data-role="controlgroup" data-type="horizontal" data-mini="true">
+        	<legend>Data Transfer Performance</legend>
+			<input type="radio" name="Main.cpuperf" id="Main.cpuperf-50" value="50">
+			<label for="Main.cpuperf-50">NO LIMIT!</label>
+			<input type="radio" name="Main.cpuperf" id="Main.cpuperf-010" value="10">
+			<label for="Main.cpuperf-010">Really fast</label>
+			<input type="radio" name="Main.cpuperf" id="Main.cpuperf-005" value="5">
+			<label for="Main.cpuperf-005">Fast (Default)</label>
+			<input type="radio" name="Main.cpuperf" id="Main.cpuperf-002" value="2.5">
+			<label for="Main.cpuperf-002">Moderate</label>
+			<input type="radio" name="Main.cpuperf" id="Main.cpuperf-001" value="1">
+			<label for="Main.cpuperf-001">Energy Saver</label>
+			<p><br>This influences the CPU usage of the MQTT Gateway, and the load of your Miniserver. Compared, the old behaviour (before this setting exists) was between <i>Moderate</i> and <i>Energy Saver</i>. Changing the setting takes 30-60 minutes to adjust.</p>
+		</fieldset>
+	
+		</div>
+
+		<div data-role="fieldcontain">
+		<label for="Main.websocketport">Mosquitto WebSocket port</label>
+		<input name="Main.websocketport" id="Main.websocketport" type="text" />
+		<p class="hint">Default WebSocket port is <span class="mono">9001</span>. This default port may conflict with other applications like ioBroker.</p>
+		</div>
+	</div>	
+	
+	
 	</form>
 	<!-- /Form SETTINGS -->
 </TMPL_IF>
@@ -929,13 +959,21 @@
 		// Elements in Main
 		for(var elemname in cfg.Main) {
 			var inputType = $("#Main\\."+elemname).attr('type');
-			// console.log("Element", elemname, cfg.Main[elemname], inputType);
+			if ( !inputType ) 
+				inputType = $("[name='Main\\."+elemname+"']").attr('type');
+			
+			console.log("Element", elemname, cfg.Main[elemname], inputType);
 			if(inputType == "checkbox") {
 				if( cfg.Main[elemname] == 1) 
 					$("#Main\\."+elemname).prop('checked', true);
-			} else {
+			} 
+			else if (inputType == "radio") {
+				$('input:radio[name="Main.'+elemname+'"]').filter('[value="'+cfg.Main[elemname]+'"]').attr("checked",true).checkboxradio("refresh");
+			}
+			else {
 				$("#Main\\."+elemname).val(cfg.Main[elemname]);
 			}
+			
 		
 		}
 		$('select').selectmenu('refresh', true);
@@ -1031,7 +1069,13 @@
 						$("#brokerpsk_block").fadeOut();
 					
 					
-			} else {
+			} 
+			else if( inputType === "radio" ) {
+				// cfg.Main[idarray[1]] = $(this).is(":checked");
+				var namearray = $(this)[0].name.split(".");
+				cfg.Main[namearray[1]] = $(this).val(); 
+			}
+			else {
 				// console.log(idarray[0], idarray[1], $("#Main\\."+idarray[1]).val());
 			
 				cfg.Main[idarray[1]] = $(this).val();
