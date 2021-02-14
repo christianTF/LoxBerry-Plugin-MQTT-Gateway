@@ -306,6 +306,21 @@
 					}
 				});
 			});
+			
+			<!-- $(document).on('click', '.http_filters', function() { -->
+				
+				<!-- http_filter_0 = $("#http_filter_0").prop('checked'); -->
+				<!-- http_filter_200 = $("#http_filter_200").prop('checked'); -->
+				<!-- http_filter_404 = $("#http_filter_404").prop('checked'); -->
+				<!-- http_filter_500 = $("#http_filter_500").prop('checked'); -->
+				<!-- http_filter_all = $("#http_filter_all").prop('checked'); -->
+				<!-- console.log("Clicked all", http_filter_all ); -->
+				<!-- if( !http_filter_0 && http_filter_200 && http_filter_404 && http_filter_500 && http_filter_all )  -->
+					<!-- $("#http_filter_all").attr("checked", true).checkboxradio("refresh"); -->
+			<!-- }); -->
+
+			
+			
 			// Update date from http and udp table
 			http_table_skel();
 			udp_table_skel();
@@ -410,8 +425,18 @@
 		}
 		
 		function http_table_skel() {
-			var http_table;
-			http_table = '<table class="topics_table" id="http_table" data-filter="true">\n';
+			var http_table = "";
+			//http_table+= '<div id="http_div_filters">';
+			http_table+= '<fieldset data-role="controlgroup" data-type="horizontal" class="http_filters">';
+			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_all" class="http_filter_checkbox" checked>Show All</label>';
+			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_200" class="http_filter_checkbox"><img src="images/icon-check.png" height="12">&nbsp;OK</label>';
+			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_404" class="http_filter_checkbox"><img src="images/icon-notfound.png" height="12">&nbsp;Not found</label>';
+			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_500" class="http_filter_checkbox"><img src="images/icon-locked.png" height="12">&nbsp;Access denied</label>';
+			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_0" class="http_filter_checkbox"><img src="images/icon-question.png" height="12">&nbsp;Not sent yet (cached)</label>';
+			// http_table+= '</div>';
+			http_table+= '</fieldset>';
+			
+			http_table+= '<table class="topics_table" id="http_table" data-filter="true">\n';
 			http_table+= '<thead>\n';
 			http_table+= '<tr>\n';
 			http_table+= '<th>Miniserver Virtual Input</th>\n';
@@ -419,6 +444,7 @@
 			http_table+= '<th>Last arrived</th>\n';
 			http_table+= '</tr>\n';
 			http_table+= '</thead>\n';
+			
 			http_table+= '<tbody>\n';
 			http_table+= '</tbody>\n';
 			http_table+= '</table>\n';
@@ -462,20 +488,25 @@
 			var date_options = { day: '2-digit', month: '2-digit' };
 			$("#http_table > tbody").empty();
 			
-			var http_row;
+			var http_row = "";
 			
+			// Get Filter flags
 			topics_show_advanced = $("#topics_show_advanced").prop('checked');
-			
+			http_filter_0 = $("#http_filter_0").prop('checked');
+			http_filter_200 = $("#http_filter_200").prop('checked');
+			http_filter_404 = $("#http_filter_404").prop('checked');
+			http_filter_500 = $("#http_filter_500").prop('checked');
+			http_filter_all = $("#http_filter_all").prop('checked');
+
+			// Loop through data
 			Object.entries(resp.http).map(([topic, content]) => {
 				//console.log(resp);
 				
 				var d = new Date(content.timestamp*1000); 
-				http_row+= '<tr id='+topic+'>\n';
-				http_row+= '<td>';
+				var toMShighest = 0;
 				
 				if( typeof resp.http[topic].toMS != 'undefined' ) {
 					toMSarr = resp.http[topic].toMS;
-					var toMShighest = 0;
 					var httpSubmitAdvTabInfRow = "";
 					for( i in toMSarr ) {
 						// console.log( topic, i, toMSarr[i].code );
@@ -515,8 +546,23 @@
 						
 				} else {
 					httpSubmitIcon = 'icon-question.png'; httpSubmitText = 'Not sent so far (cache)'; 
+					httpSubmitAdvTabInfRow = '<img src="images/'+httpSubmitIcon+'">&nbsp;'+httpSubmitText+'<br>';
 				}
-							
+				
+				// Filter 
+				var http_filter_show_entry;
+				if( http_filter_all ) http_filter_show_entry = 1;
+				if ( http_filter_500 && toMShighest == '500' ) http_filter_show_entry = 1;
+				if ( http_filter_404 && toMShighest == '404' ) http_filter_show_entry = 1;
+				if ( http_filter_200 && toMShighest == '200' ) http_filter_show_entry = 1;
+				if ( http_filter_0 && toMShighest == '0' ) http_filter_show_entry = 1;
+				
+				if ( !http_filter_show_entry ) return;
+								
+				// Begin creation of html
+				http_row+= '<tr id='+topic+'>\n';
+				http_row+= '<td>';
+								
 				http_row+= '<img src="images/'+httpSubmitIcon+'" alt="'+httpSubmitText+'">&nbsp;';
 
 				http_row+= topic;
@@ -592,7 +638,6 @@
 				
 				
 			});
-			// $("#http_table").trigger('create');
 			$("#http_table tbody").append(http_row);
 			$("#http_table").filterable('refresh');
 		}
@@ -613,46 +658,47 @@
 			
 			var udp_row = undefined;
 			
+			topics_show_advanced = $("#topics_show_advanced").prop('checked');
+			
 			Object.entries(resp.udp).map(([topic, content]) => {
 				var d = new Date(content.timestamp*1000); 
 				
 				udp_row+= '<tr>\n';
 				udp_row+= '<td>' + topic + '=' + content.message;
 				
-				if( $("#topics_show_advanced").prop('checked') == true ) 
+				if( topics_show_advanced == true ) {
 					udp_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
-				udp_row+= '</td>\n';
-				
-				udp_row+= '<td>MQTT:\\i' + topic.replace("\\", "\\\\") + '=\\i\\v';
-				
-				if( $("#topics_show_advanced").prop('checked') == true ) {
+					
 					var uncached;
-					if( resp.Noncached !== null && topic.replace(/\//g, "_") in resp.Noncached ) {
+					if( cfg.Noncached !== null && topic.replace(/\//g, "_") in cfg.Noncached ) {
 						uncached = "checked";
 					// console.log(topic, "is uncached");
 					}
 					
-					udp_row+= '<fieldset data-role="controlgroup" data-type="horizontal"><label><input type="checkbox" name="udp_cache_disabled_'+topic+'" id="udp_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached + '>Disable cache</label>';
+					udp_row+= '<div><label style="display:inline;"><input type="checkbox" name="udp_cache_disabled_'+topic+'" id="udp_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached + '>Disable cache</label>';
 				
 					var resetAfterSend;
-					if( resp.resetAfterSend !== null && topic.replace(/\//g, "_") in resp.resetAfterSend ) {
+					if( cfg.resetAfterSend !== null && topic.replace(/\//g, "_") in cfg.resetAfterSend ) {
 						resetAfterSend = "checked";
 					// console.log(topic, "is reset after send");
 					}
-					udp_row+= '<label><input type="checkbox" name="udp_reset_after_send_'+topic+'" id="udp_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label></fieldset>';
+					udp_row+= '<label style="display:inline;"><input type="checkbox" name="udp_reset_after_send_'+topic+'" id="udp_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label></fieldset>';
 					
 					var doNotForward;
-					if( resp.doNotForward !== null && topic.replace(/\//g, "_") in resp.doNotForward ) {
+					if( cfg.doNotForward !== null && topic.replace(/\//g, "_") in cfg.doNotForward ) {
 						doNotForward = "checked";
 					// console.log(topic, "is reset after send");
 					}
-					udp_row+= '<label><input type="checkbox" name="udp_do_not_forward_'+topic+'" id="udp_do_not_forward_'+topic+'"data-mini="true" class="doNotForward" ' + doNotForward +'>Do not forward</label></fieldset>';
-		
+					udp_row+= '<label style="display:inline;"><input type="checkbox" name="udp_do_not_forward_'+topic+'" id="udp_do_not_forward_'+topic+'"data-mini="true" class="doNotForward" ' + doNotForward +'>Do not forward</label></div>';
+					
 				}
+				
+				udp_row+= '</td>\n';
+				
+				udp_row+= '<td style="font-size:80%;">MQTT:\\i' + topic.replace("\\", "\\\\") + '=\\i\\v';
 				udp_row+= '</td>'
 				
 				
-				//udp_row+= '<td>' + content.message + '</td>\n';
 				udp_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString();
 				
 				udp_row+= '&nbsp;<a href="#" data-topic="' + topic + '" onclick="deleteTopic(\''+topic+'\');"><img src="images/icon-trash.png"></a>';
@@ -785,7 +831,6 @@
 		  var ms = d.getMilliseconds();
 		  return(sec+"."+ms);
 		}
-
 	
 	</script>
 
@@ -848,7 +893,7 @@
 		if (cfgstr) cfg = JSON.parse(cfgstr);
 		extpluginsstr = '<TMPL_VAR EXTPLUGINSETTINGS>';
 		if (extpluginsstr) extpluginsettings = JSON.parse(extpluginsstr);
-		console.log("Config", cfg, cfg.Main, cfg.subscriptions);
+		// console.log("Config", cfg, cfg.Main, cfg.subscriptions);
 		
 		// Hide donation
 		if( cfg.Main.donation_remove === true )
