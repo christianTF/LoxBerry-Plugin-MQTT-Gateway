@@ -328,6 +328,12 @@ sub udpin
 			$nextconfigpoll = 0;
 			undef %plugindirs;
 			$LoxBerry::IO::mem_sendall = 1;
+			foreach( keys %relayed_topics_http ) {
+				undef $relayed_topics_http{$_}{toMS};
+			}
+			undef $health_state{stats}{httpresp};
+			
+			
 		} elsif($command eq 'save_relayed_states') {
 			# LOGOK "Save relayed states triggered by udp request";
 			

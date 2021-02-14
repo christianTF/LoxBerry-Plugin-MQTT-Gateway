@@ -136,4 +136,9 @@ elseif ( $ajax == 'doNotForward' ) {
 	fclose($fp);
 	readfile( $fullcfgfile );
 }	
-
+elseif ( $ajax = 'getpids' ) {
+	$pids['mqttgateway'] = trim(`pgrep mqttgateway.pl`) ;
+	$pids['mosquitto'] = trim(`pgrep mosquitto`) ;
+	echo json_encode( array ('pids' => $pids ) );
+	
+}

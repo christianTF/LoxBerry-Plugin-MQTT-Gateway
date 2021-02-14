@@ -234,7 +234,7 @@
 	<p>You can copy and paste the 'Virtual Input' names for HTTP transmissions, or create command recognitions from the UDP messages.</p>
 	
 	<input type="checkbox" name="topics_show_advanced" id="topics_show_advanced" data-mini="true">
-	<label for="topics_show_advanced">Show advanced table information</label>
+	<label for="topics_show_advanced">Show details and advanced settings</label>
 	
 	<div data-role='collapsible' id='coll_mqtthttp' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
 		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqtthttp'>HTTP Virtual Inputs <span style='font-size:80%;'>(<span id="http_count">0</span> entries)<span id='head_mqtthttp_permissionErrors' style='display:none;font-size:80%;'>&nbsp;&nbsp;<img style="position:relative;left:15px;top:3px;" src="images/icon-locked.png">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;There are entries with access denied</span></h2>
@@ -1237,7 +1237,7 @@ $("#reconnect").click(function(){
 	function update_pids() 
 	{
 
-		$.post( 'index.cgi', {
+		$.post( 'ajax_php.php', {
 			ajax: 'getpids' })
 		.done(function(resp) {
 			// console.log( "ajax_post", "success", resp );
