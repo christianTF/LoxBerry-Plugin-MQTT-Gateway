@@ -7,6 +7,8 @@
 
 header('Content-Type: application/json; charset=UTF-8');
 
+$datafile = "/dev/shm/mqttgateway_topics.json";
+
 if( @$_POST['ajax'] == 'relayed_topics' ) {
 	if( !empty($_POST['udpinport'] ) ) {
 		$address = "udp://127.0.0.1:".$_POST['udpinport'];
@@ -18,8 +20,28 @@ if( @$_POST['ajax'] == 'relayed_topics' ) {
 		// echo fread($socket, 10);
 		fclose($socket);
 	}
-	$datafile = "/dev/shm/mqttgateway_topics.json";
+	
 	if( file_exists( $datafile ) ) {
 		readfile( $datafile );
 	}
+} 
+elseif ( @$_POST['ajax'] == 'retain' ) {
+		
+		if ( !empty($_POST['udpinport']) and $_POST['udpinport'] != "0") {
+			$address = "udp://127.0.0.1:".$_POST['udpinport'];
+			$socket = fsockopen($address);
+			
+			$dataToUDP = array(
+				"topic" => $_POST['topic'],
+				"retain" => true,
+			);
+			
+			fwrite( $socket, json_encode($dataToUDP) );
+			fclose( $socket );
+			
+		}
+				
+		if( file_exists( $datafile ) ) {
+			readfile( $datafile );
+		}
 }

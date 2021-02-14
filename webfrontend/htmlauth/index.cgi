@@ -75,44 +75,44 @@ if( $q->{ajax} ) {
 		print JSON::encode_json(\%response);
 	}
 	
-	# Relayed topics for Incoming Overview
-	if( $q->{ajax} eq "relayed_topics" ) {
+	# # Relayed topics for Incoming Overview
+	# if( $q->{ajax} eq "relayed_topics" ) {
 		
-		if (defined $q->{udpinport} and $q->{udpinport} ne "0") {
-			require IO::Socket;
-			my $udpoutsock = IO::Socket::INET->new(
-				Proto    => 'udp',
-				PeerPort => $q->{udpinport},
-				PeerAddr => 'localhost',
-			) or print STDERR "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
+		# if (defined $q->{udpinport} and $q->{udpinport} ne "0") {
+			# require IO::Socket;
+			# my $udpoutsock = IO::Socket::INET->new(
+				# Proto    => 'udp',
+				# PeerPort => $q->{udpinport},
+				# PeerAddr => 'localhost',
+			# ) or print STDERR "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
 
-			$udpoutsock->send('save_relayed_states');
-			$udpoutsock->close;
-		}
+			# $udpoutsock->send('save_relayed_states');
+			# $udpoutsock->close;
+		# }
 		
-		my $datafile = "/dev/shm/mqttgateway_topics.json";
-		print LoxBerry::System::read_file($datafile);
-	}
+		# my $datafile = "/dev/shm/mqttgateway_topics.json";
+		# print LoxBerry::System::read_file($datafile);
+	# }
 	
-	# Delete topic
-	if( $q->{ajax} eq "retain" ) {
+	# # Delete topic
+	# if( $q->{ajax} eq "retain" ) {
 		
-		if (defined $q->{udpinport} and $q->{udpinport} ne "0") {
-			require IO::Socket;
-			my $udpoutsock = IO::Socket::INET->new(
-				Proto    => 'udp',
-				PeerPort => $q->{udpinport},
-				PeerAddr => 'localhost',
-			) or print STDERR "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
+		# if (defined $q->{udpinport} and $q->{udpinport} ne "0") {
+			# require IO::Socket;
+			# my $udpoutsock = IO::Socket::INET->new(
+				# Proto    => 'udp',
+				# PeerPort => $q->{udpinport},
+				# PeerAddr => 'localhost',
+			# ) or print STDERR "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
 
-			$udpoutsock->send("retain $q->{topic}");
-			$udpoutsock->close;
+			# $udpoutsock->send("retain $q->{topic}");
+			# $udpoutsock->close;
 			
-		}
+		# }
 		
-		my $datafile = "/dev/shm/mqttgateway_topics.json";
-		print LoxBerry::System::read_file($datafile);
-	}
+		# my $datafile = "/dev/shm/mqttgateway_topics.json";
+		# print LoxBerry::System::read_file($datafile);
+	# }
 	
 	# Publish by JSON
 	if( $q->{ajax} eq "publish_json" ) {

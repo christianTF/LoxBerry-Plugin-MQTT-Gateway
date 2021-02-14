@@ -237,7 +237,7 @@
 	<label for="topics_show_advanced">Show advanced table information</label>
 	
 	<div data-role='collapsible' id='coll_mqtthttp' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
-		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqtthttp'>HTTP Virtual Inputs <span style='font-size:80%;'>(<span id="http_count">0</span> entries)</span></h2>
+		<h2 class='ui-bar ui-bar-a ui-corner-all' id='head_mqtthttp'>HTTP Virtual Inputs <span style='font-size:80%;'>(<span id="http_count">0</span> entries)<span id='head_mqtthttp_permissionErrors' style='display:none;font-size:80%;'>&nbsp;&nbsp;<img style="position:relative;left:15px;top:3px;" src="images/icon-locked.png">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;There are entries with access denied</span></h2>
 		<div id="generated_http_table">
 		</div>
 		<!-- <TMPL_VAR http_table> -->
@@ -415,7 +415,7 @@
 			http_table+= '<tr>\n';
 			http_table+= '<th>Miniserver Virtual Input</th>\n';
 			http_table+= '<th>Last value</th>\n';
-			http_table+= '<th>Last submission</th>\n';
+			http_table+= '<th>Last arrived</th>\n';
 			http_table+= '</tr>\n';
 			http_table+= '</thead>\n';
 			http_table+= '<tbody>\n';
@@ -431,7 +431,7 @@
 			udp_table+= '<tr>\n';
 			udp_table+= '<th>Data</th>\n';
 			udp_table+= '<th>Command Recognition</th>\n';
-			udp_table+= '<th>Last submission</th>\n';
+			udp_table+= '<th>Last arrived</th>\n';
 			udp_table+= '</tr>\n';
 			udp_table+= '</thead>\n';
 			udp_table+= '<tbody>\n';
@@ -443,6 +443,14 @@
 		function generate_http_table(resp) {
 			
 			$("#http_count").text(resp.health_state.stats.http_relayedcount);
+			//console.log( get( resp, 'health_state.stats.httpresp') );
+			// $("#http_count_noaccess").text(" "+resp.health_state.stats.httpresp[500]);
+			var http_noaccess = get( resp, 'health_state.stats.httpresp');
+			http_noaccess = http_noaccess[500] != 'undefined' ? http_noaccess[500] : 0; 
+			if( http_noaccess > 0 ) 
+				$("#head_mqtthttp_permissionErrors").show();
+			else
+				$("#head_mqtthttp_permissionErrors").hide();
 			
 			if ( $("#coll_mqtthttp").hasClass('ui-collapsible-collapsed') ) {
 				return;
@@ -450,25 +458,75 @@
 			
 			currentElementCount = http_count;
 			
-			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+			var date_options = { day: '2-digit', month: '2-digit' };
 			$("#http_table > tbody").empty();
 			
 			var http_row;
+			
+			topics_show_advanced = $("#topics_show_advanced").prop('checked');
 			
 			Object.entries(resp.http).map(([topic, content]) => {
 				//console.log(resp);
 				
 				var d = new Date(content.timestamp*1000); 
 				http_row+= '<tr id='+topic+'>\n';
-				http_row+= '<td>' + topic;
-				if( $("#topics_show_advanced").prop('checked') == true ) 
+				http_row+= '<td>';
+				
+				if( typeof resp.http[topic].toMS != 'undefined' ) {
+					toMSarr = resp.http[topic].toMS;
+					var toMShighest = 0;
+					var httpSubmitAdvTabInfRow = "";
+					for( i in toMSarr ) {
+						// console.log( topic, i, toMSarr[i].code );
+						if( toMSarr[i].code > toMShighest )
+							toMShighest = toMSarr[i].code;
+					
+						switch( toMSarr[i].code ) {
+							case '404': 
+								httpSubmitIcon = 'icon-notfound.png'; httpSubmitText = 'MS'+i+': HTTP 404 Input not available';
+								break;
+							case '500': 
+								httpSubmitIcon = 'icon-locked.png'; httpSubmitText = 'MS'+i+': HTTP 500 Possibly permission denied'; 
+								break;
+							case '200':
+								httpSubmitIcon = 'icon-check.png'; httpSubmitText = 'MS'+i+': HTTP 200 Value submitted'; 
+								break;
+							default: 
+								httpSubmitIcon = 'icon-question.png'; httpSubmitText = 'Not sent so far (cache)'; 
+						}
+						
+						httpSubmitTime = new Date(toMSarr[i].lastsent*1000);
+						httpSubmitAdvTabInfRow += '<img src="images/'+httpSubmitIcon+'">&nbsp;'+httpSubmitText+' at '+httpSubmitTime.toLocaleString('de-DE', { hour:'numeric', minute:'numeric', hour12:false } )+'<br>';
+					}
+				switch( toMShighest ) {
+						case '404': 
+							httpSubmitIcon = 'icon-notfound.png'; httpSubmitText = 'HTTP 404 Input not available'; 
+							break;
+						case '500': 
+							httpSubmitIcon = 'icon-locked.png'; httpSubmitText = 'HTTP 500 Possibly permission denied'; 
+							break;
+						case '200':
+							httpSubmitIcon = 'icon-check.png'; httpSubmitText = 'HTTP 200 Value submitted'; 
+							break;
+						default: 
+							httpSubmitIcon = 'icon-question.png'; httpSubmitText = 'Not sent so far (cache)'; 
+					}
+						
+				} else {
+					httpSubmitIcon = 'icon-question.png'; httpSubmitText = 'Not sent so far (cache)'; 
+				}
+							
+				http_row+= '<img src="images/'+httpSubmitIcon+'" alt="'+httpSubmitText+'">&nbsp;';
+
+				http_row+= topic;
+				if( topics_show_advanced == true ) 
 					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
 				http_row+= '</td>\n';
 								
 				var doNotForward;
 				if( resp.doNotForward !== null && topic.replace(/\//g, "_") in resp.doNotForward ) {
 					doNotForward = "checked";
-				console.log(topic, "is set to Do-Not-Forward");
+				// console.log(topic, "is set to Do-Not-Forward");
 				}
 				http_row+= '<td>';
 				if( doNotForward ) 
@@ -478,7 +536,7 @@
 					http_row+= '</s></i>';
 				
 				
-				if( $("#topics_show_advanced").prop('checked') == true ) {
+				if( topics_show_advanced == true ) {
 					
 					var uncached;
 					if( resp.Noncached !== null && topic.replace(/\//g, "_") in resp.Noncached ) {
@@ -499,11 +557,15 @@
 				}
 				http_row+= '</td>\n';
 				
-				http_row+= '<td><div class="ui-grid-a"><div class="ui-block-a" style="min-width: 160px">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</div>';
-				if( $("#topics_show_advanced").prop('checked') == true ) {
-					http_row+= '<div class="ui-block-b" style="width: 45px;float:right;"><a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic + '" onclick="deleteTopic(this);"></a></div>';
+				http_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString();
+				// http_row+= ' <a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic +'" onclick="deleteTopic(\''+content.originaltopic+'\');"></a>';
+				
+				http_row+= '&nbsp;<a href="#" data-topic="' + content.originaltopic + '" onclick="deleteTopic(\''+content.originaltopic+'\');"><img src="images/icon-trash.png"></a>';
+				
+				if( topics_show_advanced == true ) {
+					http_row+= '<br><span style="font-size:70%;">'+httpSubmitAdvTabInfRow+'</span>';
 				}
-					
+				
 				http_row+= '</div></td>\n';
 				http_row+= '</tr>\n';
 				
@@ -524,7 +586,7 @@
 			
 			currentElementCount = udp_count;
 			
-			var date_options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+			var date_options = { day: '2-digit', month: '2-digit' };
 			
 			$("#udp_table > tbody").empty();
 			
@@ -570,10 +632,10 @@
 				
 				
 				//udp_row+= '<td>' + content.message + '</td>\n';
-				udp_row+= '<td><div class="ui-grid-a"><div class="ui-block-a" style="width: 85%">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString() + '</div>';
-				if( $("#topics_show_advanced").prop('checked') == true ) {
-					udp_row+= '<div class="ui-block-b" style="width: 40px"><a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic + '" onclick="deleteTopic(this);"></a></div>';
-				}
+				udp_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString();
+				
+				udp_row+= '&nbsp;<a href="#" data-topic="' + topic + '" onclick="deleteTopic(\''+topic+'\');"><img src="images/icon-trash.png"></a>';
+				
 				udp_row+= '</div></td>\n';
 				udp_row+= '</tr>\n';
 				
@@ -594,18 +656,19 @@
         return text;
 		}
     
-		function deleteTopic(obj) {
-			// console.log("Delete", event);
-			// console.log(event.toElement.dataset.topic);
+		function deleteTopic(topic) {
+			console.log("Delete", topic);
+			console.log(event.toElement.dataset.topic);
+			
 			var udpinport = 0;
 			if (cfg) udpinport = cfg.Main.udpinport;
 			
-			$.post( 'index.cgi', {
+			$.post( 'ajax_php.php', {
 				ajax: 'retain',
 				udpinport: udpinport,
-				topic: event.toElement.dataset.topic })
+				topic: topic })
 			.done(function(resp) {
-				// console.log( "ajax_post", "success", resp );
+				console.log( "ajax_post", "success", resp );
 				return; });
 		
 		
@@ -821,7 +884,7 @@
 		extConversionsHtml = "";
 		if( typeof extpluginsettings !== 'undefined' ) {
 			$.each(extpluginsettings.plugins, function(pluginname, pluginobj) {
-					console.log("Plugin", pluginname, pluginobj);
+					// console.log("Plugin", pluginname, pluginobj);
 					if(typeof pluginobj.subscriptions !== 'undefined' && pluginobj.subscriptions.length > 0) {
 						extSubscriptionsHtml += '<div style="padding:10px 10px 10px 10px;">';
 						extSubscriptionsHtml += '<b>'+pluginname+'</b>';
@@ -1002,7 +1065,7 @@
 	});
 	
 	$("#purgemosquittodb").click(function(){
-		console.log("Restart Mosquitto database");
+		// console.log("Restart Mosquitto database");
 		$("#purgemosquittodb").attr("disabled", true);
 		$.post( 'index.cgi', {
 			ajax: 'mosquitto_purgedb' })
@@ -1021,7 +1084,7 @@
 	});
 
 $("#reconnect").click(function(){
-		console.log("Reconnect and retransmit all values");
+		// console.log("Reconnect and retransmit all values");
 		$("#reconnect").attr("disabled", true);
 		$.post( 'index.cgi', {
 			ajax: 'reconnect',
@@ -1204,7 +1267,13 @@ $("#reconnect").click(function(){
 		return enabled.includes(checkVal);
 	}
 
-
+	/*	Returns a value from a nested object without exception if undefined
+		get( response, 'health_state.httpresp' */
+	get = function(obj, key) {
+    return key.split(".").reduce(function(o, x) {
+        return (typeof o == "undefined" || o === null) ? o : o[x];
+    }, obj);
+}
 	
 	</script>
 

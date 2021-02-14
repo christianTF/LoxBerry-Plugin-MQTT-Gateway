@@ -19,6 +19,8 @@ use Hash::Flatten;
 use File::Monitor;
 use File::Find::Rule;
 
+require "MQTTGateway_IO.pm";
+
 use Data::Dumper;
 
 # use Apache2::Reload;
@@ -133,11 +135,12 @@ my $cpu_max = 0.05;
 my $PIDController = new PIDController( P => 50, I => 0.25, D => 1 );
 $PIDController->setWindup(100);
 $PIDController->{setPoint} = $cpu_max*0.9;
-my ($pollmsstarttime, $pollmsendtime);
+my ($pollmsstarttime, $pollmsendtime, $pollmsloopcount, $pollmsproctime);
 	
 # Capture messages
 while(1) {
 	$pollmsstarttime = Time::HiRes::time;
+	$pollmsloopcount++;
 	if(time>$nextconfigpoll) {
 		if(!$mqtt->{socket}) {
 			LOGWARN "No connection to MQTT broker $cfg->{Main}{brokeraddress} - Check host/port/user/pass and your connection.";
@@ -179,6 +182,7 @@ while(1) {
 	}
 	
 	$pollmsendtime = Time::HiRes::time;
+	$pollmsproctime += $pollmsendtime-$pollmsstarttime;
 	if ( $pollmsendtime < ($pollmsstarttime+$pollms/1000) ) {
 		Time::HiRes::sleep(  $pollmsstarttime - $pollmsendtime + $pollms/1000 );
 	}
@@ -604,12 +608,15 @@ sub received
 			foreach ( @toMS ) {
 				# LOGDEB "  HTTP: Sending all values";
 				my $httpresp;
-				$httpresp = LoxBerry::IO::mshttp_send($_,  %sendhash_noncached);
-				$httpresp = LoxBerry::IO::mshttp_send_mem($_,  %sendhash_cached);
+				$httpresp = LoxBerry::MQTTGateway::IO::mshttp_send2($_,  %sendhash_noncached);
+				validate_http_response( $_, \%sendhash_noncached, $httpresp ) if $httpresp;
+				$httpresp = LoxBerry::MQTTGateway::IO::mshttp_send_mem2($_,  %sendhash_cached);
+				validate_http_response( $_, \%sendhash_cached, $httpresp ) if $httpresp;
+				
 				if ( scalar keys %sendhash_resetaftersend > 0 ) {
 					LOGDEB "  HTTP: Sending reset-after-send values (delay ".$cfg->{Main}{resetaftersendms}." ms)";
 					Time::HiRes::sleep($cfg->{Main}{resetaftersendms}/1000);
-					$httpresp = LoxBerry::IO::mshttp_send($_, %sendhash_resetaftersend);
+					$httpresp = LoxBerry::MQTTGateway::IO::mshttp_send2($_, %sendhash_resetaftersend);
 				}
 			}
 		} else {
@@ -1029,6 +1036,43 @@ sub validate_subscription
 	
 }
 
+sub validate_http_response {
+
+	my ($ms, $sendhash, $httpresp) = @_;
+	
+	# if( !defined $httpresp ) {
+		# return;
+	# }
+
+	#my $httpresp_ishash = ref( $httpresp ) eq "HASH" ? 1 : 0;
+	#LOGDEB "httpresp is HASH" if $httpresp_ishash;
+	#LOGDEB "httpresp is NO Hash" if !$httpresp_ishash;
+	
+	foreach my $toMSVI ( keys %$sendhash ) {
+		my $oldcode = defined $relayed_topics_http{$toMSVI}{toMS}{"$ms"}{code} ? $relayed_topics_http{$toMSVI}{toMS}{"$ms"}{code} : 0;
+		my $newcode = defined $httpresp->{$toMSVI}->{code} ? $httpresp->{$toMSVI}->{code} : 0;
+		
+		
+		
+		if( $oldcode ne $newcode ) {
+			if( !defined $newcode ) {
+				$health_state{stats}{httpresp}{$oldcode} -= 1;
+			} 
+			elsif( $oldcode != 0 ) {
+				$health_state{stats}{httpresp}{$newcode} += 1;
+			} 
+			else { 
+				$health_state{stats}{httpresp}{$newcode} += 1;
+				$health_state{stats}{httpresp}{$oldcode} -= 1;
+			}
+		}
+		$relayed_topics_http{$toMSVI}{toMS}{"$ms"}{code} = $newcode;
+		$relayed_topics_http{$toMSVI}{toMS}{"$ms"}{lastsent} = time;
+
+	}
+}
+
+
 sub create_in_socket 
 {
 
@@ -1148,9 +1192,10 @@ sub eval_pollms {
 	$mqtt->publish($gw_topicbase . "pollms", int($pollms+0.5));
 	$mqtt->publish($gw_topicbase . "pollcpupct", int($usage*1000+0.5)/10);
 	$mqtt->publish($gw_topicbase . "pollpidval", -1*int($pollpidval*10+0.5)/10);
+	$mqtt->publish($gw_topicbase . "pollavgprocms", ($pollmsproctime/$pollmsloopcount)*1000);
+	$pollmsproctime = 0;
+	$pollmsloopcount = 0;
 	
-	
-	LOGDEB "POLLMS: " . $pollms . " ms";
 }
 	
 
