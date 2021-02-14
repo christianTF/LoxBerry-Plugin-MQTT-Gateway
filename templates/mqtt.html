@@ -520,24 +520,20 @@
 				http_row+= '<img src="images/'+httpSubmitIcon+'" alt="'+httpSubmitText+'">&nbsp;';
 
 				http_row+= topic;
-				if( topics_show_advanced == true ) 
-					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
-				http_row+= '</td>\n';
-								
+				
 				var doNotForward = "";
 				if( cfg.doNotForward !== null && topic.replace(/\//g, "_") in cfg.doNotForward ) {
 					doNotForward = "checked";
 				// console.log(topic, "is set to Do-Not-Forward");
 				}
-				http_row+= '<td>';
-				if( doNotForward ) 
-					http_row+= '<i><s style="text-shadow:none">';
-				http_row+= content.message; 
-				if( doNotForward ) 
-					http_row+= '</s></i>';
-				
+
 				
 				if( topics_show_advanced == true ) {
+					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
+					
+					
+					// http_row+= '<fieldset data-role="controlgroup" data-enhanced="true" data-type="horizontal">';
+					http_row+= '<div>';
 					
 					// Do not cache
 					var uncached = "";
@@ -545,7 +541,11 @@
 						uncached = "checked";
 						// console.log(topic, "is uncached");
 					}
-					http_row+= '<fieldset data-role="controlgroup" data-type="horizontal"><label><input type="checkbox" name="http_cache_disabled_'+topic+'" id="http_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached +'>Disable cache</label>';
+					// http_row+= '<label><input type="checkbox" name="http_cache_disabled_'+topic+'" id="http_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached +'>Disable cache</label>';
+					
+					http_row+= '<input type="checkbox" name="http_cache_disabled_'+topic+'" id="http_cache_disabled_'+topic+'" data-mini="true" class="disablecache" ' + uncached +' style="display:inline;">';
+					http_row+= '<label for="http_cache_disabled_'+topic+'" style="display:inline;">Disable cache</label>';
+				
 				
 					// Reset after send
 					var resetAfterSend = "";
@@ -553,12 +553,29 @@
 						resetAfterSend = "checked";
 					// console.log(topic, "is reset after send");
 					}
-					http_row+= '<label><input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label>';
+					// http_row+= '<label><input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label>';
+					http_row+= '&nbsp;<input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'" data-mini="true" class="resetAfterSend" '+resetAfterSend+' style="display:inline;">';
+					http_row+= '<label for "http_reset_after_send_'+topic+'" style="display:inline;">Reset after send</label>';
 								
 					// Do not forward
-					http_row+= '<label><input type="checkbox" name="http_do_not_forward_'+topic+'" id="http_do_not_forward_'+topic+'"data-mini="true" class="doNotForward" ' + doNotForward +'>Do not forward</label></fieldset>';
+					//http_row+= '<label><input type="checkbox" name="http_do_not_forward_'+topic+'" id="http_do_not_forward_'+topic+'"data-mini="true" class="doNotForward" ' + doNotForward +'>Do not forward</label>';
+					http_row+= '&nbsp;<input type="checkbox" name="http_do_not_forward_'+topic+'" id="http_do_not_forward_'+topic+'" data-mini="true" class="doNotForward" '+doNotForward +' style="display:inline;">';
+					http_row+= '<label for="http_do_not_forward_'+topic+'" style="display:inline;">Do not forward</label>';
+					
+					// http_row+= '</fieldset>';
+					http_row+= '</div>';
 				
 				}
+				
+				http_row+= '</td>\n';
+								
+				http_row+= '<td>';
+				if( doNotForward ) 
+					http_row+= '<i><s style="text-shadow:none">';
+				http_row+= content.message; 
+				if( doNotForward ) 
+					http_row+= '</s></i>';
+				
 				http_row+= '</td>\n';
 				
 				http_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString();
@@ -566,7 +583,7 @@
 				
 				http_row+= '&nbsp;<a href="#" data-topic="' + content.originaltopic + '" onclick="deleteTopic(\''+content.originaltopic+'\');"><img src="images/icon-trash.png"></a>';
 				
-				if( topics_show_advanced == true ) {
+				if( topics_show_advanced == true && httpSubmitAdvTabInfRow) {
 					http_row+= '<br><span style="font-size:70%;">'+httpSubmitAdvTabInfRow+'</span>';
 				}
 				
