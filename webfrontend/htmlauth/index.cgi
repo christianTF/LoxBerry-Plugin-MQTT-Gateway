@@ -140,62 +140,62 @@ if( $q->{ajax} ) {
 	}
 	
 	
-	# Disable cache of topic
-	if( $q->{ajax} eq "disablecache" ) {
-		require LoxBerry::JSON;
-		my $json = LoxBerry::JSON->new();
-		my $cfg = $json->open(filename => $cfgfile);
-		if (!$cfg) {
-			exit;
-		}
+	# # Disable cache of topic
+	# if( $q->{ajax} eq "disablecache" ) {
+		# require LoxBerry::JSON;
+		# my $json = LoxBerry::JSON->new();
+		# my $cfg = $json->open(filename => $cfgfile);
+		# if (!$cfg) {
+			# exit;
+		# }
 		
-		print STDERR "Cache-related topic: " . $q->{topic} . " is now " . $q->{disablecache} . "\n";
-		if(!is_enabled($q->{disablecache})) {
-			delete $cfg->{Noncached}->{$q->{topic}};
-		} else {
-			$cfg->{Noncached}->{$q->{topic}} = $q->{disablecache};
-		}
-		$json->write();
+		# print STDERR "Cache-related topic: " . $q->{topic} . " is now " . $q->{disablecache} . "\n";
+		# if(!is_enabled($q->{disablecache})) {
+			# delete $cfg->{Noncached}->{$q->{topic}};
+		# } else {
+			# $cfg->{Noncached}->{$q->{topic}} = $q->{disablecache};
+		# }
+		# $json->write();
 	
-	}
+	# }
 	
-	# Set resetAfterSend for a topic
-	if( $q->{ajax} eq "resetAfterSend" ) {
-		require LoxBerry::JSON;
-		my $json = LoxBerry::JSON->new();
-		my $cfg = $json->open(filename => $cfgfile);
-		if (!$cfg) {
-			exit;
-		}
+	# # Set resetAfterSend for a topic
+	# if( $q->{ajax} eq "resetAfterSend" ) {
+		# require LoxBerry::JSON;
+		# my $json = LoxBerry::JSON->new();
+		# my $cfg = $json->open(filename => $cfgfile);
+		# if (!$cfg) {
+			# exit;
+		# }
 		
-		print STDERR "Reset-After-Send topic: " . $q->{topic} . " is now " . $q->{resetAfterSend} . "\n";
-		if(!is_enabled($q->{resetAfterSend})) {
-			delete $cfg->{resetAfterSend}->{$q->{topic}};
-		} else {
-			$cfg->{resetAfterSend}->{$q->{topic}} = $q->{resetAfterSend};
-		}
-		$json->write();
+		# print STDERR "Reset-After-Send topic: " . $q->{topic} . " is now " . $q->{resetAfterSend} . "\n";
+		# if(!is_enabled($q->{resetAfterSend})) {
+			# delete $cfg->{resetAfterSend}->{$q->{topic}};
+		# } else {
+			# $cfg->{resetAfterSend}->{$q->{topic}} = $q->{resetAfterSend};
+		# }
+		# $json->write();
 	
-	}
+	# }
 	
-	# Set doNotForward for a topic
-	if( $q->{ajax} eq "doNotForward" ) {
-		require LoxBerry::JSON;
-		my $json = LoxBerry::JSON->new();
-		my $cfg = $json->open(filename => $cfgfile);
-		if (!$cfg) {
-			exit;
-		}
+	# # Set doNotForward for a topic
+	# if( $q->{ajax} eq "doNotForward" ) {
+		# require LoxBerry::JSON;
+		# my $json = LoxBerry::JSON->new();
+		# my $cfg = $json->open(filename => $cfgfile);
+		# if (!$cfg) {
+			# exit;
+		# }
 		
-		print STDERR "Do-Not-Forward topic: " . $q->{topic} . " is now " . $q->{doNotForward} . "\n";
-		if(!is_enabled($q->{doNotForward})) {
-			delete $cfg->{doNotForward}->{$q->{topic}};
-		} else {
-			$cfg->{doNotForward}->{$q->{topic}} = $q->{doNotForward};
-		}
-		$json->write();
+		# print STDERR "Do-Not-Forward topic: " . $q->{topic} . " is now " . $q->{doNotForward} . "\n";
+		# if(!is_enabled($q->{doNotForward})) {
+			# delete $cfg->{doNotForward}->{$q->{topic}};
+		# } else {
+			# $cfg->{doNotForward}->{$q->{topic}} = $q->{doNotForward};
+		# }
+		# $json->write();
 	
-	}
+	# }
 	
 	exit;
 

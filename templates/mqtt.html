@@ -332,6 +332,7 @@
 		}
 	
 		function updateTopics() {
+			
 			// console.log("Update topics");
 			// Serialize requests
 			if (getSelectedText()) {
@@ -523,8 +524,8 @@
 					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
 				http_row+= '</td>\n';
 								
-				var doNotForward;
-				if( resp.doNotForward !== null && topic.replace(/\//g, "_") in resp.doNotForward ) {
+				var doNotForward = "";
+				if( cfg.doNotForward !== null && topic.replace(/\//g, "_") in cfg.doNotForward ) {
 					doNotForward = "checked";
 				// console.log(topic, "is set to Do-Not-Forward");
 				}
@@ -538,20 +539,23 @@
 				
 				if( topics_show_advanced == true ) {
 					
-					var uncached;
-					if( resp.Noncached !== null && topic.replace(/\//g, "_") in resp.Noncached ) {
+					// Do not cache
+					var uncached = "";
+					if( cfg.Noncached !== null && topic.replace(/\//g, "_") in cfg.Noncached ) {
 						uncached = "checked";
-					// console.log(topic, "is uncached");
+						// console.log(topic, "is uncached");
 					}
 					http_row+= '<fieldset data-role="controlgroup" data-type="horizontal"><label><input type="checkbox" name="http_cache_disabled_'+topic+'" id="http_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached +'>Disable cache</label>';
 				
-					var resetAfterSend;
-					if( resp.resetAfterSend !== null && topic.replace(/\//g, "_") in resp.resetAfterSend ) {
+					// Reset after send
+					var resetAfterSend = "";
+					if( cfg.resetAfterSend !== null && topic.replace(/\//g, "_") in cfg.resetAfterSend ) {
 						resetAfterSend = "checked";
 					// console.log(topic, "is reset after send");
 					}
 					http_row+= '<label><input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label>';
 								
+					// Do not forward
 					http_row+= '<label><input type="checkbox" name="http_do_not_forward_'+topic+'" id="http_do_not_forward_'+topic+'"data-mini="true" class="doNotForward" ' + doNotForward +'>Do not forward</label></fieldset>';
 				
 				}
@@ -687,12 +691,13 @@
 			var is_checked = event.currentTarget.checked;
 			// console.log("checkbox_disablecache", cachetarget, "Checked", is_checked);
 			
-			$.post( 'index.cgi', {
+			$.post( 'ajax_php.php', {
 				ajax: 'disablecache',
 				disablecache: is_checked,
 				topic: cachetarget })
 			.done(function(resp) {
 				// console.log( "ajax_post", "success", resp );
+				if( resp ) cfg = resp;
 				return; 
 			});
 		};
@@ -710,11 +715,12 @@
 			var is_checked = event.currentTarget.checked;
 			// console.log("checkbox_reset_after_send", checkboxtarget, "Checked", is_checked);
 			
-			$.post( 'index.cgi', {
+			$.post( 'ajax_php.php', {
 				ajax: 'resetAfterSend',
 				resetAfterSend: is_checked,
 				topic: checkboxtarget })
 			.done(function(resp) {
+				if( resp ) cfg = resp;
 				// console.log( "ajax_post", "success", resp );
 				return; 
 			});
@@ -733,12 +739,13 @@
 			var is_checked = event.currentTarget.checked;
 			// console.log("checkbox_reset_after_send", checkboxtarget, "Checked", is_checked);
 			
-			$.post( 'index.cgi', {
+			$.post( 'ajax_php.php', {
 				ajax: 'doNotForward',
 				doNotForward: is_checked,
 				topic: checkboxtarget })
 			.done(function(resp) {
-				// console.log( "ajax_post", "success", resp );
+				if( resp ) cfg = resp;
+				// console.log( "ajax_post donotforward", "success", resp );
 				return; 
 			});
 		};
@@ -824,7 +831,7 @@
 		if (cfgstr) cfg = JSON.parse(cfgstr);
 		extpluginsstr = '<TMPL_VAR EXTPLUGINSETTINGS>';
 		if (extpluginsstr) extpluginsettings = JSON.parse(extpluginsstr);
-		// console.log("Config", cfg, cfg.Main, cfg.subscriptions);
+		console.log("Config", cfg, cfg.Main, cfg.subscriptions);
 		
 		// Hide donation
 		if( cfg.Main.donation_remove === true )
