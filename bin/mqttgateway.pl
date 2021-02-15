@@ -129,8 +129,8 @@ my $monitor = File::Monitor->new();
 
 my $cpu = Proc::CPUUsage->new();
 my $cpu_max;
-my $PIDController = new PIDController( P => 50, I => 0.25, D => 1 );
-my ($pollmsstarttime, $pollmsendtime, $pollmsloopcount, $pollmsproctime);
+my $PIDController;
+my ($pollmsstarttime, $pollmsendtime, $pollmsloopcount);
 
 read_config();
 create_in_socket();
@@ -182,7 +182,6 @@ while(1) {
 	}
 	
 	$pollmsendtime = Time::HiRes::time;
-	$pollmsproctime += $pollmsendtime-$pollmsstarttime;
 	if ( $pollmsendtime < ($pollmsstarttime+$pollms/1000) ) {
 		Time::HiRes::sleep(  $pollmsstarttime - $pollmsendtime + $pollms/1000 );
 	}
@@ -748,16 +747,11 @@ sub read_config
 		}
 		if(! defined $cpu_max ) {
 			$cpu_max = defined $cfg->{Main}{cpuperf} ? $cfg->{Main}{cpuperf}/100 : 5/100; 
-			$PIDController->setWindup(100);
-			$PIDController->{setPoint} = $cpu_max*0.9;
 			LOGOK "Performance Profile: ".($cpu_max*100)."% CPU usage";
-
 		} 
 		else {
 			if( $cpu_max ne $cfg->{Main}{cpuperf}/100 ) {
-				$cpu_max = defined $cfg->{Main}{cpuperf} ? $cfg->{Main}{cpuperf}/100 : 5/100; 
-				$PIDController->setWindup(100);
-				$PIDController->{setPoint} = $cpu_max*0.9;
+				$cpu_max = $cfg->{Main}{cpuperf}/100;
 				LOGOK "Performance Profile changed: ".($cpu_max*100)."% CPU usage";
 			}
 		}
@@ -1188,12 +1182,17 @@ sub eval_pollms {
 	my $usage = $cpu->usage();
 	my $pollpidval;
 	if( !$nextrelayedstatepoll ) {
-		$PIDController = new PIDController( P => 50, I => 0.5, D => 1 );
-		$PIDController->setWindup(100);
+		$PIDController = new PIDController( P => 400, I => 0.001, D => 20 );
+		$PIDController->setWindup(5);
 		$PIDController->{setPoint} = $cpu_max*0.9;
 	} else {
+		$PIDController->{setPoint} = $cpu_max*0.9;
 		$pollpidval = $PIDController->update($usage);
-		$pollms -= $pollpidval;
+		if( $pollpidval < 0 ) {
+			$pollms -= $pollms*($pollpidval*0.01*5);
+		} else {
+			$pollms -= $pollms*($pollpidval*0.01);
+		}
 	}
 
 	# if( $usage > $cpu_max*1.2 ) {
@@ -1206,16 +1205,17 @@ sub eval_pollms {
 		# $pollms -= 5;
 	# }
 	
-	if( $pollms < 0 ) {
-		$pollms = 0;
+	if( $pollms < 0.1 ) {
+		$pollms = 0.1;
 	} elsif( $pollms > 150 ) {
 		$pollms = 150;
 	}
-	$mqtt->publish($gw_topicbase . "pollms", int($pollms+0.5));
-	$mqtt->publish($gw_topicbase . "pollcpupct", int($usage*1000+0.5)/10);
-	$mqtt->publish($gw_topicbase . "pollpidval", -1*int($pollpidval*10+0.5)/10);
-	$mqtt->publish($gw_topicbase . "pollavgprocms", ($pollmsproctime/$pollmsloopcount)*1000);
-	$pollmsproctime = 0;
+	$mqtt->publish($gw_topicbase . "pollms", int($pollms*100+0.5)/100);
+	$mqtt->publish($gw_topicbase . "pollcpucurpct", int($usage*1000+0.5)/10);
+	$mqtt->publish($gw_topicbase . "pollcpumaxpct", int($PIDController->{setPoint}*1000)/10);
+	$mqtt->publish($gw_topicbase . "pollpidvalpct", -1*int($pollpidval*10+0.5)/10);
+	
+	$mqtt->publish($gw_topicbase . "pollproccnt", int($pollmsloopcount/60+0.5));
 	$pollmsloopcount = 0;
 	
 }

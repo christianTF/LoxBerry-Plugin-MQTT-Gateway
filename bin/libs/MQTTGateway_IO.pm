@@ -22,7 +22,7 @@ my %udpsocket;
 
 sub mshttp_send2
 {
-	print STDERR "mqtt_mshttp_send2\n";
+	# print STDERR "mqtt_mshttp_send2\n";
 	my $msnr = shift;
 	
 	if (@_ % 2) {
@@ -52,7 +52,7 @@ sub mshttp_send2
 
 sub mshttp_send_mem2
 {
-	print STDERR "mqtt_mshttp_send_mem2\n";
+	# print STDERR "mqtt_mshttp_send_mem2\n";
 	my $msnr = shift;
 	
 	if (! $msnr) {
