@@ -117,7 +117,11 @@ sub update_config
 		LOGINF "Setting delimiter for subscription miniserver list to " . $cfg->{Main}{toMS_delimiter};
 		$changed++;
 		}
-
+	if(! defined $cfg->{Main}{cpuperf}) { 
+		$cfg->{Main}{cpuperf} = "5"; 
+		LOGINF "Setting Performance Profile to " . $cfg->{Main}{cpuperf};
+		$changed++;
+		}
 
 		
 	# Migrate credentials from mqtt.json to cred.json
