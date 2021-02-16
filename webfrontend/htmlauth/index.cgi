@@ -352,7 +352,7 @@ sub topics_form
 sub logs_form
 {
 
-	$template->param('loglist_html', loglist_html());
+	$template->param('loglist_html', LoxBerry::Web::loglist_html());
 
 }
 
