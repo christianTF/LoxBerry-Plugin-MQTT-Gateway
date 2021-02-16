@@ -112,6 +112,12 @@
 			<p class="hint">Use a safe password! Click the dice to open a funny password generator: <a href="https://www.dinopass.com/" target="_blank"><img src="images/dice_30_30.png" alt="Dice"></a></p>
 		</div>
 		
+		<div data-role="fieldcontain" id="brokerwebsocket_block" style="display:none">
+		<label for="Main.websocketport">Mosquitto WebSocket port</label>
+		<input name="Main.websocketport" id="Main.websocketport" type="text" />
+		<p class="hint">Default WebSocket port is <span class="mono">9001</span>. This default port may conflict with other applications like ioBroker.</p>
+		</div>
+		
 		<div data-role="fieldcontain" id="brokerpsk_block" style="display:none">
 			<label for="Credentials.brokerpsk">Broker Pre-Shared Key (TLS-PSK)</label>
 			<input name="Credentials.brokerpsk" id="Credentials.brokerpsk" type="text" readonly="readonly" />
@@ -143,12 +149,6 @@
 			<p><br>This influences the routing performance of the MQTT Gateway. Compared, the old behaviour (before this setting exists) was between <i>Moderate</i> and <i>Energy Saver</i>. Changing the setting takes some minutes to adjust.</p>
 		</fieldset>
 	
-		</div>
-
-		<div data-role="fieldcontain">
-		<label for="Main.websocketport">Mosquitto WebSocket port</label>
-		<input name="Main.websocketport" id="Main.websocketport" type="text" />
-		<p class="hint">Default WebSocket port is <span class="mono">9001</span>. This default port may conflict with other applications like ioBroker.</p>
 		</div>
 	</div>	
 	
@@ -1098,11 +1098,14 @@
 				cfg.Main[idarray[1]] = $(this).is(":checked");
 				if(id == "Main.enable_mosquitto") 
 					creds_changed = true;
-					if($(this).is(":checked")) 
+					if($(this).is(":checked")) {
 						$("#brokerpsk_block").fadeIn();
-					else
+						$("#brokerwebsocket_block").fadeIn();
+					}
+					else {
 						$("#brokerpsk_block").fadeOut();
-					
+						$("#brokerwebsocket_block").fadeOut();
+					}
 					
 			} 
 			else if( inputType === "radio" ) {
@@ -1110,6 +1113,10 @@
 				var namearray = $(this)[0].name.split(".");
 				cfg.Main[namearray[1]] = $(this).val(); 
 			}
+			else if ( idarray[1] == "websocketport" ) {
+				creds_changed = true;
+				cfg.Main[idarray[1]] = $(this).val();
+			}	
 			else {
 				// console.log(idarray[0], idarray[1], $("#Main\\."+idarray[1]).val());
 			
@@ -1162,7 +1169,9 @@
 							secpin: $('#securepin').val(),
 							brokeruser: creds.Credentials.brokeruser,
 							brokerpass: creds.Credentials.brokerpass,
-							enable_mosquitto: cfg.Main.enable_mosquitto}
+							enable_mosquitto: cfg.Main.enable_mosquitto,
+							websocketport: cfg.Main.websocketport
+					}
 				} )
 			.fail(function( data ) {
 				console.log( "Error saving credentials" );
@@ -1295,11 +1304,14 @@ $("#reconnect").click(function(){
 
 			}
 			$("#credentials_block").fadeIn();
-			if( $("#Main\\.enable_mosquitto").is(":checked") ) 
+			if( $("#Main\\.enable_mosquitto").is(":checked") ) {
 				$("#brokerpsk_block").fadeIn();
-			else
+				$("#brokerwebsocket_block").fadeIn();
+			}
+			else {
 				$("#brokerpsk_block").fadeOut();
-			
+				$("#brokerwebsocket_block").fadeOut();
+			}
 			
 		})
 		

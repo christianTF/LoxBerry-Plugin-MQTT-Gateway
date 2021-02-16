@@ -122,7 +122,11 @@ sub update_config
 		LOGINF "Setting Performance Profile to " . $cfg->{Main}{cpuperf};
 		$changed++;
 		}
-
+	if(! defined $cfg->{Main}{websocketport}) { 
+		$cfg->{Main}{websocketport} = "9001"; 
+		LOGINF "Setting Mosquitto WebSocket port to " . $cfg->{Main}{websocketport};
+		$changed++;
+		}
 		
 	# Migrate credentials from mqtt.json to cred.json
 	if(defined $cfg->{Main}{brokeruser} or defined $cfg->{Main}{brokerpass}) {
@@ -192,7 +196,7 @@ sub update_config
 		
 		print STDERR "COMMAND: $lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} brokerpsk=$Credentials{brokerpsk} enable_mosquitto=$cfg->{Main}{enable_mosquitto}\n";
 		
-		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} brokerpsk=$Credentials{brokerpsk} enable_mosquitto=$cfg->{Main}{enable_mosquitto}`;
+		`$lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} brokerpsk=$Credentials{brokerpsk} enable_mosquitto=$cfg->{Main}{enable_mosquitto} websocketport=$cfg->{Main}{websocketport}`;
 		
 		`sudo $lbpbindir/sudo/mosq_readconfig.sh`; 
 		

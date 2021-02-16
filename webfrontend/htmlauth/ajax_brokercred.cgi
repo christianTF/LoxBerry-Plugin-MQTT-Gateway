@@ -36,7 +36,7 @@ my $cred = $credobj->open(filename => $credfile);
 # print Dumper($cred);
 my $action = $q->{action} ? $q->{action} : "";
 if ($action eq "getcred") { getcred(); }
-elsif ($action eq "setcred") { setcred($q->{brokeruser}, $q->{brokerpass}, $q->{enable_mosquitto}, $q->{brokerpsk}); }
+elsif ($action eq "setcred") { setcred($q->{brokeruser}, $q->{brokerpass}, $q->{enable_mosquitto}, $q->{brokerpsk}, $q->{websocketport}); }
 else  { 
 	$response{message} = "The requested operation is not permitted.";
 	$response{error} = 1;
@@ -88,7 +88,7 @@ sub getcred
 
 sub setcred
 {
-	my ($brokeruser, $brokerpass, $enable_mosquitto, $brokerpsk) = @_;
+	my ($brokeruser, $brokerpass, $enable_mosquitto, $brokerpsk, $websocketport) = @_;
 	my %Credentials;
 	
 	$Credentials{brokeruser} = $brokeruser;
@@ -113,6 +113,7 @@ sub setcred
 		my $mosq_cfgfile = "$lbpconfigdir/mosquitto.conf";
 		my $mosq_passwdfile = "$lbpconfigdir/mosq_passwd";
 		my $mosq_pskfile = "$lbpconfigdir/mosq_psk";
+		$websocketport = defined $websocketport ? trim($websocketport) : 9002;
 		
 		# Create and write config file
 		my $mosq_config;
@@ -150,7 +151,7 @@ sub setcred
 		
 		# Websocket listener (currently without TLS)
 		$mosq_config .= "\n# Websockets listener\n";
-		$mosq_config .= "listener 9001\n";
+		$mosq_config .= "listener $websocketport\n";
 		$mosq_config .= "protocol websockets\n";
 		
 		
