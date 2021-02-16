@@ -325,7 +325,9 @@
 			http_table_skel();
 			udp_table_skel();
 			restoreWindow();
-			$("#topics_show_advanced").prop( "checked", sessionStorage.getItem("topics_show_advanced")).checkboxradio("refresh");
+			
+			if( is_enabled( sessionStorage.getItem("topics_show_advanced")) )
+				$("#topics_show_advanced").prop( "checked", true).checkboxradio("refresh");
 			
 			$("#topics_show_advanced").on( "change", function(){
 				sessionStorage.setItem("topics_show_advanced", $(this).prop("checked"));
