@@ -1420,7 +1420,7 @@ $("#reconnect").click(function(){
 	function is_enabled( checkVal ) 
 	{
 		// console.log("is_enabled", checkVal);
-		if( typeof checkVal === 'undefined' ) return false;
+		if( typeof checkVal === 'undefined' || checkVal === null ) return false;
 		
 		checkVal = checkVal.toString();
 		
