@@ -958,6 +958,9 @@ sub read_config
 			foreach my $topic ( keys %{$cfg->{doNotForward}}) {
 				if (LoxBerry::System::is_enabled($cfg->{doNotForward}->{$topic}) ) {
 					$doNotForward{$topic} = 1;
+					# Clear submit state
+					undef $relayed_topics_udp{$topic}{toMS};
+					undef $relayed_topics_http{$topic}{toMS};
 					LOGDEB "doNotForward: $topic";
 				}
 			}
@@ -1153,8 +1156,6 @@ sub save_relayed_states
 	$health_state{stats}{http_relayedcount} = keys %relayed_topics_http;
 	$health_state{stats}{udp_relayedcount} = keys %relayed_topics_udp; 
 	
-	$relayjson->{stats}{http}{relayedcount} = keys %relayed_topics_http;
-	$relayjson->{stats}{udp}{relayedcount} = keys %relayed_topics_udp; 
 	$relayjson->{udp} = \%relayed_topics_udp;
 	$relayjson->{http} = \%relayed_topics_http;
 	$relayjson->{Noncached} = $cfg->{Noncached};
