@@ -864,6 +864,7 @@ sub read_config
 			my @checked_subscriptions;
 			LOGINF "Checking subscriptions for invalid entries";
 			foreach my $topic (@subscriptions) {
+				next if( !trim($topic) );
 				my $msg = validate_subscription($topic);
 				if($msg) {
 					LOGWARN "Skipping subscription $topic ($msg)";
