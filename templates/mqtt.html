@@ -188,11 +188,11 @@
 		<p id="invalidTopics" class="hint" style="color:red"></p>
 	</div>
 	<div class="ui-block-b" style="width:50%;min-width:20%;">
-		<textarea name="subscriptions" id="subscriptions" rows="20" data-autogrow="false" class="notes"></textarea>
+		<textarea name="subscriptions" id="subscriptions" rows="10" data-autogrow="false" class="notes"></textarea>
 	</div>
 	</div>
 <!--	</div> -->
-	</form>
+	
 	
 	
 	<div data-role='collapsible' id='coll_extsubscriptions' data-content-theme='true' data-collapsed='true' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right' style="display:none">
@@ -200,9 +200,41 @@
 		<div id="extplugin_subscriptions" style="display:flex;flex-wrap:wrap;justify-content:space-evenly;align-items:flex-start;align-content:flex-start;background-color:lightgray;">
 		</div>
 	</div>
+	<br>
+	<div class="wide">Subscription Filter Expressions (RegEx)</div>
+	
+	<p>Subscriptions may route a lot of data to the Miniserver, some of them are never required for your logic. Filter expressions are Regular Expressions (RegEx) that filter the <u>JSON expanded</u> data. A filter <b>match</b> is <b>not forwarded</b> to the Miniserver (it's a &laquo;catch-all&raquo; of the <i>Do not forward</i> checkbox). At the stage of the filter, all topic delimiters (<span class="mono">/</span>) are <i>underscores</i> (<span class="mono">_</span>), even with UDP transmission.
+	</p>
+	
+	<div class="ui-grid-b">
+		<div class="ui-block-a" style="width:20%;min-width:200px;max-width:35%">
+			<p class="hint">One RegEx per line.</p>
+			<p id="invalidRegexs" class="hint" style="color:red;"></p>
+		</div>
+		<div class="ui-block-b" style="width:50%;min-width:20%;">
+			<textarea name="subscriptionfilters" id="subscriptionfilters" rows="5" data-autogrow="false" class="notes"></textarea>
+		</div>
+	</div>
+	
+	</form>
 	
 	<!-- /Form SUBSCRIPTIONS -->
+
+<script>
+
+$(function(){
+
+
 	
+
+
+});
+
+</script>
+
+
+
+
 	
 </TMPL_IF>
 
@@ -257,6 +289,11 @@
 		text-shadow: 1px 1px #333333;
 		
 	}
+	
+	.subscriptionfiltered {
+		color: #777777;
+	}
+	
 	</style>
 	
 	<div class="wide">Last transmissions to Miniserver</div>
@@ -625,12 +662,19 @@
 				if ( http_filter_0 && toMShighest == '0' ) http_filter_show_entry = 1;
 				
 				if ( !http_filter_show_entry ) return;
-								
+				
+				var subscriptionfiltered = 0;
+				var tdClass = '';
+				if( typeof resp.http[topic].regexfilterline != 'undefined' ) {
+					subscriptionfiltered = resp.http[topic].regexfilterline;
+					tdClass += 'subscriptionfiltered';
+				}
+				
 				// Begin creation of html
 				http_row+= '<tr id='+topic+'>\n';
-				http_row+= '<td>';
+				http_row+= '<td class="'+tdClass+'">';
 								
-				http_row+= '<img src="images/'+httpSubmitIcon+'" alt="'+httpSubmitText+'">&nbsp;';
+				http_row+= '<img src="images/'+httpSubmitIcon+'">&nbsp;';
 
 				http_row+= topic;
 				
@@ -682,8 +726,8 @@
 				
 				http_row+= '</td>\n';
 								
-				http_row+= '<td>';
-				if( doNotForward ) 
+				http_row+= '<td class="'+tdClass+'">';
+				if( doNotForward || subscriptionfiltered != 0 ) 
 					http_row+= '<i><s style="text-shadow:none">';
 				http_row+= content.message; 
 				if( doNotForward ) 
@@ -691,15 +735,18 @@
 				
 				http_row+= '</td>\n';
 				
-				http_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString();
+				http_row+= '<td class="'+tdClass+'">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString();
 				// http_row+= ' <a href="#" class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-mini" data-topic="' + content.originaltopic +'" onclick="deleteTopic(\''+content.originaltopic+'\');"></a>';
 				
 				http_row+= '&nbsp;<a href="#" data-topic="' + content.originaltopic + '" onclick="deleteTopic(\''+content.originaltopic+'\');"><img src="images/icon-trash.png"></a>';
 				
-				if( topics_show_advanced == true && httpSubmitAdvTabInfRow) {
-					http_row+= '<br><span style="font-size:70%;">'+httpSubmitAdvTabInfRow+'</span>';
-				}
 				
+				if ( topics_show_advanced == true && subscriptionfiltered != 0 ) {
+					http_row+= '<br><span style="font-size:70%;">Subscription filtered by RegEx line '+subscriptionfiltered+'</span>';
+				}
+				else if( topics_show_advanced == true && httpSubmitAdvTabInfRow) {
+					http_row+= '<br><span style="font-size:70%;">'+httpSubmitAdvTabInfRow+'</span>';
+				} 
 				http_row+= '</div></td>\n';
 				http_row+= '</tr>\n';
 				
@@ -922,14 +969,7 @@
 	.trans_table div {
 		padding: 3px 7px 3px 7px;
 	}
-	
-	
-	
-	
-	
 	</style>
-
-
 
 	<div style="display:none" id="transformers_json"><TMPL_VAR transformers></div>
 	
@@ -1007,28 +1047,15 @@ $(function() {
 			tuhtml+= '</div>';
 			tuhtml+= '</div>';
 			// tuhtml+= '<div style="display:flex;" class="hint">Example Virtual Output Command:&nbsp;&nbsp;<span class="mono"><span style="color:black">publish </span>'+transname+' <span style="color:black">to/my/topic</span> <span style="color:blue">&lt;v.1&gt;</span></span></div>';
-			
-			
-			
-			
-			
 			tuhtml+= '<div style="display:flex;"><div style="font-size:65%;">'+trans.filename+'</div></div>';
-			
-		
 			tuhtml+= '</td></tr>';
-			
-		
-		
 		}
-		
-		
 	}
 	tuhtml += '</table>';
 	$('#transformers_udp_tablediv').html( tuhtml );
 	
 });
 </script>	
-	
 	
 	
 	<!-- /Form LOGS -->
@@ -1098,6 +1125,16 @@ $(function() {
 			validateTopics();
 		}
 		
+		// Elemens in subscriptionfilters expressions
+		if( cfg.subscriptionfilters ) {
+			// Elements in subscriptionfilters
+			var subscriptionfilters = cfg.subscriptionfilters;
+			var subText = "";
+			
+			$("#subscriptionfilters").text( cfg.subscriptionfilters.join("\n") );
+			validateRegexs();
+		}
+
 		// Elements in conversions
 		if( cfg.conversions )
 			$("#conversions").text( cfg.conversions.join("\n") );
@@ -1198,6 +1235,14 @@ $(function() {
 			cfg.subscriptions = subscriptions;
 			// console.log("Subscriptions Array", cfg.subscriptions);
 		} 
+		else if (id == "subscriptionfilters") {
+			var subs = $.trim($("#"+id).val()).split("\n");
+			var subscriptionfilters = [];
+			subs.forEach( function(line){
+				subscriptionfilters.push(line);
+			});
+			cfg.subscriptionfilters = subscriptionfilters;
+		}
 		else if (id == "conversions") {
 			// console.log("conversions content",  $("#"+id).val());
 			cfg.conversions = $.trim($("#"+id).val()).split("\n");
@@ -1525,6 +1570,35 @@ $("#reconnect").click(function(){
 		validateTopics();
 	});
 
+	function validateRegexs(regexes) {
+		if ( $('#subscriptionfilters').val() == null) return;
+		var arrayOfRegexs = $('#subscriptionfilters').val().split('\n');
+		// console.log("validateRegexs", arrayOfRegexs );
+		var invalidRegexs = [];
+		for (var i = 0; i < arrayOfRegexs.length; i++) {
+			var isValid = true;
+			try {
+				new RegExp(arrayOfRegexs[i]);
+			} catch(e) {
+				isValid = false;
+				invalidRegexs.push(arrayOfRegexs[i]);
+			}
+			// if(!isValid) console.log("Invalid regular expression", arrayOfRegexs[i]);
+		}
+		
+		if(invalidRegexs.length > 0) 
+			$('#invalidRegexs').html( 'The following Regular Expressions are not valid:<br><b>'+invalidRegexs.join('<br>')+'</b>' );
+		else 
+			$('#invalidRegexs').html("");
+		
+	}
+	
+	/* Directly validate the subscriptionfilter expressions during input */
+	$('#subscriptionfilters').on('input', function() { 
+		validateRegexs();
+	});
+
+	
 	/* A simple is_enabled function as known from LoxBerry's Perl and PHP SDK */
 	function is_enabled( checkVal ) 
 	{

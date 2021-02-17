@@ -64,6 +64,9 @@ my %plugindirs;
 my @subscriptions;
 my @subscriptions_toms;
 
+# Subscription Filter Expressions
+my @subscriptionfilters;
+
 # Conversions
 my %conversions;
 
@@ -370,8 +373,6 @@ sub received
 	utf8::encode($topic);
 	LOGINF "MQTT received: $topic: $message";
 	
-	
-	
 	if( is_enabled($cfg->{Main}{expand_json}) ) {
 		# Check if message is a json
 		eval {
@@ -456,6 +457,8 @@ sub received
 		my $sendtopic_underlined = $sendtopic;
 		$sendtopic_underlined =~ s/\//_/g;
 		
+		delete $relayed_topics_http{$sendtopic_underlined}{regexfilterline};
+		
 		# Skip doNotForward topics
 		if (exists $cfg->{doNotForward}->{$sendtopic_underlined} ) {
 			LOGDEB "   $sendtopic (incoming value $sendhash{$sendtopic}) skipped - do not forward enabled";
@@ -465,6 +468,27 @@ sub received
 				$relayed_topics_http{$sendtopic_underlined}{message} = $sendhash{$sendtopic};
 				$relayed_topics_http{$sendtopic_underlined}{originaltopic} = $sendtopic;
 			}
+			next;
+		}
+		
+		# Run Subscription Filter Expressions
+		my $regexcounter = 0;
+		my $regexmatch = 0;
+		foreach( @subscriptionfilters ) {
+			$regexcounter++;
+			if( $sendtopic_underlined  =~ /$_/ ) {
+				LOGDEB "   $sendtopic (incoming value $sendhash{$sendtopic}) skipped - Subscription Filter line $regexcounter";
+				$regexmatch = 1;
+				# Generate data for Incoming Overview
+				$relayed_topics_http{$sendtopic_underlined}{timestamp} = time;
+				$relayed_topics_http{$sendtopic_underlined}{message} = $sendhash{$sendtopic};
+				$relayed_topics_http{$sendtopic_underlined}{originaltopic} = $sendtopic;
+				$relayed_topics_http{$sendtopic_underlined}{regexfilterline} = $regexcounter;
+				delete $relayed_topics_http{$sendtopic_underlined}{toMS};
+				last;
+			}
+		}
+		if( $regexmatch == 1 ) {
 			next;
 		}
 		
@@ -889,6 +913,75 @@ sub read_config
 			
 		}
 		
+		# Subscription Filter Expressions
+		# Compare current with loaded array
+		if( join('', @{$cfg->{subscriptionfilters}}) ne join('', @subscriptionfilters) ) {
+			
+			@subscriptionfilters = ();
+			
+			# Validate Expressions
+			LOGINF "Reading Subscription Expression Filters";
+			foreach( @{$cfg->{subscriptionfilters}} ) {
+				if( !trim($_) ) {
+					next;
+				}
+				my $regex = eval { qr/$_/ };
+				if($@) {
+					LOGWARN("Subscription Expression Filter '$_' is invalid - skipping");
+				} else {
+					LOGOK("Subscription Expression Filter '$_' is valid");
+					push( @subscriptionfilters, $_ );
+				}	
+			}
+			# Directly set current data as filtered
+		
+			LOGINF "Subscription Expression Filters are applied to current data";
+			# Filter HTTP
+			foreach my $topic ( %relayed_topics_http ) {
+				my $regexcounter = 0;
+				my $regexmatch;
+				foreach( @subscriptionfilters ) {
+					$regexcounter++;
+					if( $topic  =~ /$_/ ) {
+						$regexmatch = 1;
+						# Generate data for Incoming Overview
+						$relayed_topics_http{$topic}{regexfilterline} = $regexcounter;
+						delete $relayed_topics_http{$topic}{toMS};
+						last;
+					}
+					else {
+						delete $relayed_topics_http{$topic}{regexfilterline};
+					}
+				}
+				if( $regexmatch == 1 ) {
+					next;
+				}
+			}
+			# Filter UDP
+			foreach my $topic ( %relayed_topics_udp ) {
+				my $filtertopic = $topic;
+				$filtertopic =~ tr/\//_/;
+				my $regexcounter = 0;
+				my $regexmatch;
+				foreach( @subscriptionfilters ) {
+					$regexcounter++;
+					if( $filtertopic  =~ /$_/ ) {
+						$regexmatch = 1;
+						# Generate data for Incoming Overview
+						$relayed_topics_udp{$topic}{regexfilterline} = $regexcounter;
+						delete $relayed_topics_udp{$topic}{toMS};
+						last;
+					}
+					else {
+						delete $relayed_topics_udp{$topic}{regexfilterline};
+					}
+				}
+				if( $regexmatch == 1 ) {
+					next;
+				}
+			}
+		}	
+			
 		# Conversions
 		undef %conversions;
 		my @temp_conversions_list;
@@ -1163,8 +1256,11 @@ sub save_relayed_states
 	$relayjson->{resetAfterSend} = \%resetAfterSend;
 	$relayjson->{doNotForward} = \%doNotForward;
 	$relayjson->{health_state} = \%health_state;
-	$relayjson->{transformers}{udpin} = \%trans_udpin;
-	$relayjson->{transformers}{mqttin} = \%trans_mqttin;
+# 	$relayjson->{transformers}{udpin} = \%trans_udpin;
+#	$relayjson->{transformers}{mqttin} = \%trans_mqttin;
+
+	$relayjson->{subscriptionfilters} = \@subscriptionfilters;
+	
 	$relayjsonobj->write();
 	undef $relayjsonobj;
 
