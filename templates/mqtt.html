@@ -998,6 +998,8 @@ $(function() {
 			tuhtml+= '<tr><td>';
 			tuhtml+= '<div style="display:flex;">';
 			tuhtml+= '<div class="mono" style="font-size:120%"><b>'+transname+'</b></div>';
+			var type_color = trans.type === 'shipped' ? '#8e256b' : 'blue';
+			tuhtml+= '<div style="color:'+type_color+';">('+trans.type+')</div>';
 			tuhtml+= '<div>'+trans.description+'</div>';
 			tuhtml+= '<div>';
 			if( trans.link )

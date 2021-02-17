@@ -1236,8 +1236,11 @@ sub trans_reread_directories {
 	undef %trans_udpin;
 	undef %trans_mqttin;
 	
+	my $trans_basepath_len = length($trans_basepath)+1;
+	
 	foreach ( @files ) {
 		my $trans_ext = '';
+		my $trans_type = substr( $_, $trans_basepath_len, index( $_, '/', $trans_basepath_len ) - $trans_basepath_len );
 		my $trans_name = lc( substr( $_, rindex( $_, '/')+1 ) );
 		my $dot_pos = rindex( $trans_name, '.' );
 		$trans_ext = substr ( $trans_name, $dot_pos+1) if $dot_pos != -1;
@@ -1246,6 +1249,7 @@ sub trans_reread_directories {
 		LOGDEB "Trans_Name $trans_name: $_";
 		$trans_udpin{$trans_name}{filename} = $_;
 		$trans_udpin{$trans_name}{extension} = $trans_ext;
+		$trans_udpin{$trans_name}{type} = $trans_type;
 		$trans_udpin{$trans_name}{is_perl} =  $trans_ext eq 'pl' or $trans_ext eq 'pm' ? 1 : 0;
 		my $skills = trans_skills( $trans_udpin{$trans_name}{filename} );
 		$trans_udpin{$trans_name}{input} = $skills->{input};
