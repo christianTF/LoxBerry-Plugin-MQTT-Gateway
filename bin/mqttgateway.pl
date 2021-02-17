@@ -47,6 +47,7 @@ my $cfgfile = "$lbpconfigdir/mqtt.json";
 my $credfile = "$lbpconfigdir/cred.json";
 my $datafile = "/dev/shm/mqttgateway_topics.json";
 my $extplugindatafile = "/dev/shm/mqttgateway_extplugindata.json";
+my $transformerdatafile = "/dev/shm/mqttgateway_transformers.json";
 my $json;
 my $json_cred;
 my $cfg;
@@ -1253,6 +1254,14 @@ sub trans_reread_directories {
 		$trans_udpin{$trans_name}{link} = $skills->{link};
 		
 	}
+	
+	# Create Transformers data file
+	unlink $transformerdatafile;
+	my $transjsonobj = LoxBerry::JSON::JSONIO->new();
+	my $transjson = $transjsonobj->open(filename => $transformerdatafile);
+	$transjson->{udpin} = \%trans_udpin;
+	$transjson->{mqttin} = \%trans_mqttin;
+	$transjsonobj->write();
 	
 }
 

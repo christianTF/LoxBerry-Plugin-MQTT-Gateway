@@ -6,6 +6,7 @@ use CGI;
 
 my $cfgfile = "$lbpconfigdir/mqtt.json";
 my $extplugindatafile = "/dev/shm/mqttgateway_extplugindata.json";
+my $transformerdatafile = "/dev/shm/mqttgateway_transformers.json";
 
 my $cgi = CGI->new;
 my $q = $cgi->Vars;
@@ -250,7 +251,7 @@ if( $q->{ajax} ) {
 		$navbar{90}{active} = 1;
 		$template->param("FORM_LOGS", 1);
 		$template->param("FORM_DISABLE_BUTTONS", 1);
-		$template->param("FORM_DISABLE_JS", 1);
+		# $template->param("FORM_DISABLE_JS", 1);
 		logs_form();
 	}
 }
@@ -281,7 +282,7 @@ sub print_form
  	$navbar{40}{Name} = "Incoming overview";
 	$navbar{40}{URL} = 'index.cgi?form=topics';
  
-	$navbar{90}{Name} = "Logfiles";
+	$navbar{90}{Name} = "Transformers & Logs";
 	$navbar{90}{URL} = 'index.cgi?form=logs';
 		
 	LoxBerry::Web::lbheader($plugintitle, $helplink, $helptemplate);
@@ -352,6 +353,7 @@ sub topics_form
 sub logs_form
 {
 
+	$template->param('transformers', LoxBerry::System::read_file($transformerdatafile) );
 	$template->param('loglist_html', LoxBerry::Web::loglist_html());
 
 }
