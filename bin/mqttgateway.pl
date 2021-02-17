@@ -457,8 +457,6 @@ sub received
 		my $sendtopic_underlined = $sendtopic;
 		$sendtopic_underlined =~ s/\//_/g;
 		
-		delete $relayed_topics_http{$sendtopic_underlined}{regexfilterline};
-		
 		# Skip doNotForward topics
 		if (exists $cfg->{doNotForward}->{$sendtopic_underlined} ) {
 			LOGDEB "   $sendtopic (incoming value $sendhash{$sendtopic}) skipped - do not forward enabled";
@@ -467,6 +465,12 @@ sub received
 				$relayed_topics_http{$sendtopic_underlined}{timestamp} = time;
 				$relayed_topics_http{$sendtopic_underlined}{message} = $sendhash{$sendtopic};
 				$relayed_topics_http{$sendtopic_underlined}{originaltopic} = $sendtopic;
+			}
+			if( is_enabled($cfg->{Main}{use_udp}) ) {
+				# Generate data for Incoming Overview
+				$relayed_topics_udp{$sendtopic}{timestamp} = time;
+				$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
+				$relayed_topics_udp{$sendtopic}{originaltopic} = $sendtopic;
 			}
 			next;
 		}
@@ -480,16 +484,29 @@ sub received
 				LOGDEB "   $sendtopic (incoming value $sendhash{$sendtopic}) skipped - Subscription Filter line $regexcounter";
 				$regexmatch = 1;
 				# Generate data for Incoming Overview
-				$relayed_topics_http{$sendtopic_underlined}{timestamp} = time;
-				$relayed_topics_http{$sendtopic_underlined}{message} = $sendhash{$sendtopic};
-				$relayed_topics_http{$sendtopic_underlined}{originaltopic} = $sendtopic;
-				$relayed_topics_http{$sendtopic_underlined}{regexfilterline} = $regexcounter;
-				delete $relayed_topics_http{$sendtopic_underlined}{toMS};
+				if( is_enabled($cfg->{Main}{use_http}) ) {
+					$relayed_topics_http{$sendtopic_underlined}{timestamp} = time;
+					$relayed_topics_http{$sendtopic_underlined}{message} = $sendhash{$sendtopic};
+					$relayed_topics_http{$sendtopic_underlined}{originaltopic} = $sendtopic;
+					$relayed_topics_http{$sendtopic_underlined}{regexfilterline} = $regexcounter;
+					delete $relayed_topics_http{$sendtopic_underlined}{toMS};
+				}
+				if( is_enabled($cfg->{Main}{use_udp}) ) {
+					$relayed_topics_udp{$sendtopic}{timestamp} = time;
+					$relayed_topics_udp{$sendtopic}{message} = $sendhash{$sendtopic};
+					$relayed_topics_udp{$sendtopic}{originaltopic} = $sendtopic;
+					$relayed_topics_udp{$sendtopic}{regexfilterline} = $regexcounter;
+				}
+				
 				last;
 			}
 		}
 		if( $regexmatch == 1 ) {
 			next;
+		}
+		else {
+			delete $relayed_topics_http{$sendtopic_underlined}{regexfilterline};
+			delete $relayed_topics_udp{$sendtopic}{regexfilterline};
 		}
 		
 		if (exists $cfg->{Noncached}->{$sendtopic_underlined} or exists $resetAfterSend{$sendtopic_underlined}) {
@@ -1221,27 +1238,36 @@ sub save_relayed_states
 	
 	## Delete memory elements older than one day, and delete empty messages
 	
-	# Delete udp messages
-	foreach my $sendtopic (keys %relayed_topics_udp) {
-		if(	$relayed_topics_udp{$sendtopic}{timestamp} < (time - 24*60*60) ) {
-			delete $relayed_topics_udp{$sendtopic};
+	# Delete udp messages older 24 hours
+	if( is_enabled( $cfg->{Main}->{use_udp} ) ) {
+		foreach my $sendtopic (keys %relayed_topics_udp) {
+			if(	$relayed_topics_udp{$sendtopic}{timestamp} < (time - 24*60*60) ) {
+				delete $relayed_topics_udp{$sendtopic};
+			}
+			if( $relayed_topics_udp{$sendtopic}{message} eq "" ) {
+				delete $relayed_topics_udp{$sendtopic};
+			}
 		}
-		if( $relayed_topics_udp{$sendtopic}{message} eq "" ) {
-			delete $relayed_topics_udp{$sendtopic};
-		}
+	}
+	else {
+		undef %relayed_topics_udp;
 	}
 	
 	# Delete http message
-	foreach my $sendtopic (keys %relayed_topics_http) {
-		if(	$relayed_topics_http{$sendtopic}{timestamp} < (time - 24*60*60) ) {
-			delete $relayed_topics_http{$sendtopic};
+	if( is_enabled( $cfg->{Main}->{use_http} ) ) {
+		foreach my $sendtopic (keys %relayed_topics_http) {
+			if(	$relayed_topics_http{$sendtopic}{timestamp} < (time - 24*60*60) ) {
+				delete $relayed_topics_http{$sendtopic};
+			}
+			if( $relayed_topics_http{$sendtopic}{message} eq "" ) {
+				delete $relayed_topics_http{$sendtopic};
+			}
 		}
-		if( $relayed_topics_http{$sendtopic}{message} eq "" ) {
-			delete $relayed_topics_http{$sendtopic};
-		}
-
 	}
-	
+	else {
+		undef %relayed_topics_http;
+	}
+		
 	# LOGINF "Relayed topics are saved on RAMDISK for UI";
 	unlink $datafile;
 	my $relayjsonobj = LoxBerry::JSON::JSONIO->new();
