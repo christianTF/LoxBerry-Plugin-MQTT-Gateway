@@ -139,6 +139,10 @@ elseif ( $ajax == 'doNotForward' ) {
 elseif ( $ajax = 'getpids' ) {
 	$pids['mqttgateway'] = trim(`pgrep mqttgateway.pl`) ;
 	$pids['mosquitto'] = trim(`pgrep mosquitto`) ;
+	
+	$pids['mqttgateway'] = $pids['mqttgateway'] != 0 ? $pids['mqttgateway'] : null;
+	$pids['mosquitto'] = $pids['mosquitto'] != 0 ? $pids['mosquitto'] : null;
+	
 	echo json_encode( array ('pids' => $pids ) );
 	
 }
