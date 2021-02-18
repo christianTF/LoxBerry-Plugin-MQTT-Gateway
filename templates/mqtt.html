@@ -294,6 +294,18 @@ $(function(){
 		width: 35%;
 	}
 	
+	.topics_table_udp_data {
+		word-break: break-all;
+		width: 50%;
+	}
+	
+	.topics_table_udp_commandrec {
+		word-break: break-all;
+		/* width: 35%; */
+	}
+	
+	
+	
 	.topics_table_status {
 		min-width: 150px;
 	}
@@ -807,7 +819,7 @@ $(function(){
 				}
 				
 				udp_row+= '<tr>\n';
-				udp_row+= '<td class="'+tdClass+'">' + topic + '=' + content.message;
+				udp_row+= '<td class="'+tdClass+' topics_table_udp_data">' + topic + '=' + content.message;
 				
 				if( topics_show_advanced == true ) {
 					udp_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
@@ -836,7 +848,7 @@ $(function(){
 				
 				udp_row+= '</td>\n';
 				
-				udp_row+= '<td style="font-size:80%;" class="'+tdClass+'">';
+				udp_row+= '<td style="font-size:80%;" class="'+tdClass+' topics_table_udp_commandrec">';
 				if( subscriptionfiltered != 0 )
 					udp_row+= 'Subscription filtered by RegEx line '+subscriptionfiltered+'<br>';
 				if( doNotForward ) 
@@ -846,7 +858,7 @@ $(function(){
 				udp_row+= '</td>'
 				
 				
-				udp_row+= '<td>' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString();
+				udp_row+= '<td class="topics_table_status">' + d.toLocaleDateString('hc', date_options) + ' ' + d.toLocaleTimeString();
 				
 				udp_row+= '&nbsp;<a href="#" data-topic="' + topic + '" onclick="deleteTopic(\''+topic+'\');"><img src="images/icon-trash.png"></a>';
 				
