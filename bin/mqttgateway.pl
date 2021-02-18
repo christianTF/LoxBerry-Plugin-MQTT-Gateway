@@ -91,6 +91,10 @@ my $udpMAXLEN = 10240;
 # Own MQTT Gateway topic
 my $gw_topicbase;
 
+# Local lookup cache
+my $dns_nextupdatetime=0;
+my %dns_loopupcache = ();
+
 # Transformer scripts
 my %trans_udpin;
 my %trans_mqttin;
@@ -181,8 +185,11 @@ while(1) {
 		eval_pollms();
 		$nextrelayedstatepoll = time+60;
 		$mqtt->retain($gw_topicbase . "keepaliveepoch", time);
-		
-
+		# Every 4 hours clear the DNS lookup cache
+		if( $dns_nextupdatetime < time ) {
+			undef %dns_loopupcache;
+			$dns_nextupdatetime = time()+14400;
+		}
 	}
 	
 	$pollmsendtime = Time::HiRes::time;
@@ -208,10 +215,24 @@ sub udpin
 	
 	
 	# Data to publish are stored in an array holding a hash
+	# LOGDEB "UDP IN: Starting" if( $udpmsg ne 'save_relayed_states' );
 	my @publish_arr;
-	
 	my($port, $ipaddr) = sockaddr_in($udpinsock->peername);
-	$udpremhost = gethostbyaddr($ipaddr, AF_INET);
+	
+	
+	if( defined $dns_loopupcache{ $ipaddr } ) {
+		$udpremhost = $dns_loopupcache{ $ipaddr };
+	}
+	else {
+		my $dnsstarttime = Time::HiRes::time();
+		$udpremhost = gethostbyaddr($ipaddr, AF_INET);
+		LOGINF "Executing DNS reverse lookup";
+		$dns_loopupcache{ $ipaddr } = $udpremhost;
+		if( (Time::HiRes::time()-$dnsstarttime) > 0.05 ) {
+			LOGWARN "DNS lookup time is high: " . int((Time::HiRes::time()-$dnsstarttime)/1000) . " msecs. Normally this is around 2-10 msecs.";
+		}
+	}
+	
 	# Skip log for relayed_state requests
 	if( $udpmsg ne 'save_relayed_states' ) {
 		LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
@@ -330,7 +351,7 @@ sub udpin
 			LOGOK "Forcing reconnection and retransmission to Miniserver";
 			$nextconfigpoll = 0;
 			undef %plugindirs;
-			$LoxBerry::IO::mem_sendall = 1;
+			$LoxBerry::MQTTGateway::IO::mem_sendall = 1;
 			foreach( keys %relayed_topics_http ) {
 				undef $relayed_topics_http{$_}{toMS};
 			}
