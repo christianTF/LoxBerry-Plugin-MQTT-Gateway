@@ -353,9 +353,9 @@ sub udpin
 			undef %plugindirs;
 			$LoxBerry::MQTTGateway::IO::mem_sendall = 1;
 			foreach( keys %relayed_topics_http ) {
-				undef $relayed_topics_http{$_}{toMS};
+				delete $relayed_topics_http{$_}{toMS};
 			}
-			undef $health_state{stats}{httpresp};
+			delete $health_state{stats}{httpresp};
 			
 			
 		} elsif($command eq 'save_relayed_states') {
@@ -1095,8 +1095,8 @@ sub read_config
 				if (LoxBerry::System::is_enabled($cfg->{doNotForward}->{$topic}) ) {
 					$doNotForward{$topic} = 1;
 					# Clear submit state
-					undef $relayed_topics_udp{$topic}{toMS};
-					undef $relayed_topics_http{$topic}{toMS};
+					delete $relayed_topics_udp{$topic}{toMS};
+					delete $relayed_topics_http{$topic}{toMS};
 					LOGDEB "doNotForward: $topic";
 				}
 			}
