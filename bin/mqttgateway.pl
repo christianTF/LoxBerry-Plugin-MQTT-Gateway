@@ -65,7 +65,7 @@ my @subscriptions;
 my @subscriptions_toms;
 
 # Subscription Filter Expressions
-my @subscriptionfilters;
+my @subscriptionfilters = ();
 
 # Conversions
 my %conversions;
@@ -797,7 +797,9 @@ sub read_config
 				LOGOK "Performance Profile changed: ".($cpu_max*100)."% CPU usage";
 			}
 		}
-		
+		if(! defined $cfg->{subscriptionfilters} ) {
+			$cfg->{subscriptionfilters} = \@subscriptionfilters;
+		}
 		
 		LOGDEB "JSON Dump:";
 		LOGDEB Dumper($cfg);
@@ -933,7 +935,8 @@ sub read_config
 		
 		# Subscription Filter Expressions
 		# Compare current with loaded array
-		if( join('', @{$cfg->{subscriptionfilters}}) ne join('', @subscriptionfilters) ) {
+		
+		if ( join('', @{$cfg->{subscriptionfilters}}) ne join('', @subscriptionfilters) ) {
 			
 			@subscriptionfilters = ();
 			
