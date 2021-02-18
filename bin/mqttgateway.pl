@@ -117,10 +117,9 @@ my $log = LoxBerry::Log->new (
     name => 'MQTT Gateway',
 	filename => "$lbplogdir/mqttgateway.log",
 	append => 1,
-	stdout => 1,
-	loglevel => 7,
+	# stdout => 1,
+	# loglevel => 7,
 	addtime => 1
-	
 );
 
 LOGSTART "MQTT Gateway started";
@@ -1334,7 +1333,9 @@ sub eval_pollms {
 		$PIDController = new PIDController( P => 400, I => 0.001, D => 20 );
 		$PIDController->setWindup(5);
 		$PIDController->{setPoint} = $cpu_max*0.9;
-	} else {
+		$pollpidval = 0;
+	} 
+	else {
 		$PIDController->{setPoint} = $cpu_max*0.9;
 		$pollpidval = $PIDController->update($usage);
 		if( $pollpidval < 0 ) {
