@@ -1021,13 +1021,14 @@ $(function(){
 	<div class="wide">Transformers</div>
 	<p>Transformers are scripts of any programming language provided by <i>YOURSELF</i> (or shipped with the MQTT Gateway), that stands in the middle of the data transfer, and can transform incoming values to other outgoing values. Currently only <b>UDP Transformers</b> are supported, that modify data from the Miniserver before sending to MQTT.
 	</p>
-	<p class="hint">Example: Loxone sends RGB colors as  combined 0-100% value, but devices require three seperate 0-255 values. A UDP Transformer can archive this.</p> 
+	<p class="hint">Example: Loxone sends RGB colors as combined 0-100% value, but devices require three seperate 0-255 values. An UDP Transformer can archive this.</p> 
+	<p>Use MQTT Gateway's <a href="pub_popup.cgi" target="_blank">Quick Publisher</a> to test publishes to the broker.</p>
 	
 	<div data-role='collapsible' id='coll_package_transformers_udp' data-content-theme='true' data-collapsed='false' data-collapsed-icon='carat-d' data-expanded-icon='carat-u' data-iconpos='right'>
 	
 		<h2 class='ui-bar ui-bar-a ui-corner-all' id='transformers_udp_head'>Available UDP Transformers</h2>
 		<div>
-		<p>A UDP Transformer acts <b>Miniserver&rarr;Transformer&rarr;MQTT</b> and is called from a Virtual Output Command like <i>publish</i> or <i>retain</i> but with added Transformer name in the parameters:<br>
+		<p>An UDP Transformer acts <b>Miniserver&rarr;Transformer&rarr;MQTT</b> and is called from a Virtual Output Command like <i>publish</i> or <i>retain</i> but with added Transformer name in the parameters:<br>
 		Syntax: <span class="mono"><span style="color:black">publish </span>transformername <span style="color:black">to/my/topic</span> <span style="color:blue">data1 data2 ...</span></span>
 		<br>
 		Example: <span class="mono"><span style="color:black">publish </span>shelly_rgb&amp;w <span style="color:black">shellies/shelly-12345/color/0/set</span> <span style="color:blue">rgb &lt;v&gt;</span></span>
