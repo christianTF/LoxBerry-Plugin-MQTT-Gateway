@@ -228,7 +228,7 @@ sub udpin
 		LOGINF "Executing DNS reverse lookup";
 		$dns_loopupcache{ $ipaddr } = $udpremhost;
 		if( (Time::HiRes::time()-$dnsstarttime) > 0.05 ) {
-			LOGWARN "DNS lookup time is high: " . int((Time::HiRes::time()-$dnsstarttime)/1000) . " msecs. Normally this is around 2-10 msecs.";
+			LOGWARN "DNS lookup time is high: " . int((Time::HiRes::time()-$dnsstarttime)*1000) . " msecs. Normally this is around 2-10 msecs.";
 		}
 	}
 	
