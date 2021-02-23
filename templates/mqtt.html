@@ -803,7 +803,7 @@ $(function(){
 			Object.entries(resp.udp).map(([topic, content]) => {
 				var d = new Date(content.timestamp*1000); 
 				
-				var doNotForward = null;
+				var doNotForward = "";
 				if( typeof cfg.doNotForward !== 'undefined' && topic.replace(/\//g, "_") in cfg.doNotForward ) {
 					doNotForward = "checked";
 				}
@@ -824,7 +824,7 @@ $(function(){
 				if( topics_show_advanced == true ) {
 					udp_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
 					
-					var uncached;
+					var uncached = "";
 					if( typeof cfg.Noncached !== 'undefined' && topic.replace(/\//g, "_") in cfg.Noncached ) {
 						uncached = "checked";
 					// console.log(topic, "is uncached");
@@ -832,7 +832,7 @@ $(function(){
 					
 					udp_row+= '<div><label style="display:inline;"><input type="checkbox" name="udp_cache_disabled_'+topic+'" id="udp_cache_disabled_'+topic+'"data-mini="true" class="disablecache" ' + uncached + '>Disable cache</label>';
 				
-					var resetAfterSend;
+					var resetAfterSend = "";
 					if( typeof cfg.resetAfterSend !== 'undefined' && topic.replace(/\//g, "_") in cfg.resetAfterSend ) {
 						resetAfterSend = "checked";
 					// console.log(topic, "is reset after send");
