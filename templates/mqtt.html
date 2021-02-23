@@ -699,7 +699,7 @@ $(function(){
 				}
 				
 				// Begin creation of html
-				http_row+= '<tr id='+topic+'>\n';
+				http_row+= '<tr id='+topic.replace(/\s+/g, '_')+'>\n';
 				http_row+= '<td class="'+tdClass+'">';
 								
 				http_row+= '<img src="images/'+httpSubmitIcon+'" style="user-select: none;padding-right:6px;">';
@@ -733,7 +733,7 @@ $(function(){
 					}
 					// http_row+= '<label><input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'"data-mini="true" class="resetAfterSend" ' + resetAfterSend +'>Reset after send</label>';
 					http_row+= '&nbsp;<input type="checkbox" name="http_reset_after_send_'+topic+'" id="http_reset_after_send_'+topic+'" data-mini="true" class="resetAfterSend" '+resetAfterSend+' style="display:inline;">';
-					http_row+= '<label for "http_reset_after_send_'+topic+'" style="display:inline;">Reset after send</label>';
+					http_row+= '<label for="http_reset_after_send_'+topic+'" style="display:inline;">Reset after send</label>';
 								
 					// Do not forward
 					//http_row+= '<label><input type="checkbox" name="http_do_not_forward_'+topic+'" id="http_do_not_forward_'+topic+'"data-mini="true" class="doNotForward" ' + doNotForward +'>Do not forward</label>';
