@@ -1194,38 +1194,12 @@ sub validate_http_response {
 
 	my ($ms, $sendhash, $httpresp) = @_;
 	
-	# if( !defined $httpresp ) {
-		# return;
-	# }
-
-	#my $httpresp_ishash = ref( $httpresp ) eq "HASH" ? 1 : 0;
-	#LOGDEB "httpresp is HASH" if $httpresp_ishash;
-	#LOGDEB "httpresp is NO Hash" if !$httpresp_ishash;
-	
 	foreach my $toMSVI ( keys %$sendhash ) {
-		my $oldcode = defined $relayed_topics_http{$toMSVI}{toMS}{"$ms"}{code} ? $relayed_topics_http{$toMSVI}{toMS}{"$ms"}{code} : 0;
 		my $newcode = defined $httpresp->{$toMSVI}->{code} ? $httpresp->{$toMSVI}->{code} : 0;
-		
-		
-		
-		if( $oldcode ne $newcode ) {
-			if( !defined $newcode ) {
-				$health_state{stats}{httpresp}{$oldcode} -= 1;
-			} 
-			elsif( $oldcode != 0 ) {
-				$health_state{stats}{httpresp}{$newcode} += 1;
-			} 
-			else { 
-				$health_state{stats}{httpresp}{$newcode} += 1;
-				$health_state{stats}{httpresp}{$oldcode} -= 1;
-			}
-		}
 		$relayed_topics_http{$toMSVI}{toMS}{"$ms"}{code} = $newcode;
 		$relayed_topics_http{$toMSVI}{toMS}{"$ms"}{lastsent} = time;
-
 	}
 }
-
 
 sub create_in_socket 
 {
@@ -1279,12 +1253,20 @@ sub save_relayed_states
 	
 	# Delete http message
 	if( is_enabled( $cfg->{Main}->{use_http} ) ) {
+		delete $health_state{stats}{httpresp};
 		foreach my $sendtopic (keys %relayed_topics_http) {
 			if(	$relayed_topics_http{$sendtopic}{timestamp} < (time - 24*60*60) ) {
 				delete $relayed_topics_http{$sendtopic};
+				next;
 			}
 			if( $relayed_topics_http{$sendtopic}{message} eq "" ) {
 				delete $relayed_topics_http{$sendtopic};
+				next;
+			}
+			# Count resp status codes
+			foreach( keys %{$relayed_topics_http{$sendtopic}{toMS}} ) {
+				my $code = $relayed_topics_http{$sendtopic}{toMS}{$_}{code};
+				$health_state{stats}{httpresp}{$code}++;
 			}
 		}
 	}
