@@ -87,6 +87,12 @@ my $udpinsock;
 my $udpmsg;
 my $udpremhost;
 my $udpMAXLEN = 10240;
+
+# Store if data were received in the last cycle ("Fast Response Mode")
+my $fast_response_mode = 1; # General mode enabled or disabled
+my $do_fast_response; # Flag per loop
+my $mqtt_data_received = 0;
+my $udp_data_received = 0;
 		
 # Own MQTT Gateway topic
 my $gw_topicbase;
@@ -117,7 +123,7 @@ my $log = LoxBerry::Log->new (
     name => 'MQTT Gateway',
 	filename => "$lbplogdir/mqttgateway.log",
 	append => 1,
-	# stdout => 1,
+	stdout => 1,
 	# loglevel => 7,
 	addtime => 1
 );
@@ -192,8 +198,13 @@ while(1) {
 	}
 	
 	$pollmsendtime = Time::HiRes::time;
-	if ( $pollmsendtime < ($pollmsstarttime+$pollms/1000) ) {
+	$do_fast_response = ($mqtt_data_received || $udp_data_received ) && $fast_response_mode ? 1 : 0;
+	if ( $pollmsendtime < ($pollmsstarttime+$pollms/1000) and !$do_fast_response) {
 		Time::HiRes::sleep(  $pollmsstarttime - $pollmsendtime + $pollms/1000 );
+	}
+	else {
+		$mqtt_data_received = 0;
+		$udp_data_received = 0;
 	}
 }
 
@@ -218,6 +229,8 @@ sub udpin
 	my @publish_arr;
 	my($port, $ipaddr) = sockaddr_in($udpinsock->peername);
 	
+	# Remember that we have currently have received data
+	$udp_data_received = 1;
 	
 	if( defined $dns_loopupcache{ $ipaddr } ) {
 		$udpremhost = $dns_loopupcache{ $ipaddr };
@@ -392,6 +405,9 @@ sub received
 	
 	utf8::encode($topic);
 	LOGINF "MQTT received: $topic: $message";
+	
+	# Remember that we have currently have received data
+	$mqtt_data_received = 1;
 	
 	if( is_enabled($cfg->{Main}{expand_json}) ) {
 		# Check if message is a json
@@ -1245,10 +1261,10 @@ sub save_relayed_states
 	# Delete udp messages older 24 hours
 	if( is_enabled( $cfg->{Main}->{use_udp} ) ) {
 		foreach my $sendtopic (keys %relayed_topics_udp) {
-			if(	$relayed_topics_udp{$sendtopic}{timestamp} < (time - 24*60*60) ) {
+			if(	defined $relayed_topics_udp{$sendtopic}{timestamp} and $relayed_topics_udp{$sendtopic}{timestamp} < (time - 24*60*60) ) {
 				delete $relayed_topics_udp{$sendtopic};
 			}
-			if( $relayed_topics_udp{$sendtopic}{message} eq "" ) {
+			if( defined $relayed_topics_udp{$sendtopic}{message} and $relayed_topics_udp{$sendtopic}{message} eq "" ) {
 				delete $relayed_topics_udp{$sendtopic};
 			}
 		}
