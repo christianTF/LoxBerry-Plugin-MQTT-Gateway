@@ -543,6 +543,12 @@ sub received
 		}	
 	}
 	
+	# Check if still any data need to be sent. Otherwise, processing is finished
+	if( scalar keys %sendhash_cached == 0 and scalar keys %sendhash_noncached == 0 and scalar keys %sendhash_resetaftersend == 0 ) {
+		LOGDEB "All data filtered - skipping further processing of this message";
+		return;
+	};
+	
 	# toMS: Evaluate what Miniservers to send to
 	my @toMS = ();
 	my $idx=0;
