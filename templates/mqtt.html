@@ -635,7 +635,7 @@ $(function(){
 				var d = new Date(content.timestamp*1000); 
 				var toMShighest = 0;
 				
-				if( typeof resp.http[topic].toMS != 'undefined' ) {
+				if( typeof resp.http[topic].toMS != 'undefined' && typeof resp.http[topic].regexfilterline == 'undefined' && typeof resp.doNotForward[topic] == 'undefined' ) {
 					toMSarr = resp.http[topic].toMS;
 					var httpSubmitAdvTabInfRow = "";
 					for( i in toMSarr ) {
@@ -674,7 +674,12 @@ $(function(){
 							httpSubmitIcon = 'icon-question.png'; httpSubmitText = 'Not sent so far (cache)'; 
 					}
 						
-				} else {
+				} else if ( typeof resp.http[topic].regexfilterline != 'undefined' || typeof resp.doNotForward[topic] != 'undefined' ) {
+					httpSubmitIcon = 'icon-filtered.png'; httpSubmitText = 'Filtered'; 
+					httpSubmitAdvTabInfRow = '<img src="images/'+httpSubmitIcon+'">&nbsp;'+httpSubmitText+'<br>';
+					toMShighest = -1;
+				}
+				else {
 					httpSubmitIcon = 'icon-question.png'; httpSubmitText = 'Not sent so far (cache)'; 
 					httpSubmitAdvTabInfRow = '<img src="images/'+httpSubmitIcon+'">&nbsp;'+httpSubmitText+'<br>';
 				}
