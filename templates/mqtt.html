@@ -421,6 +421,7 @@ $(function(){
 				http_filter_200 = $("#http_filter_200").prop('checked');
 				http_filter_404 = $("#http_filter_404").prop('checked');
 				http_filter_500 = $("#http_filter_500").prop('checked');
+				http_filter_filtered = $("#http_filter_filtered").prop('checked');
 				http_filter_all = $("#http_filter_all").prop('checked');
 				// jQm sometimes hides the table...?
 				$("#topics_table_head").removeClass('ui-screen-hidden');
@@ -431,6 +432,7 @@ $(function(){
 				     !http_filter_200 &&
 				     !http_filter_404 &&
 				     !http_filter_500 &&
+					 !http_filter_filtered &&
 				     !http_filter_all ) {
 					 $("#http_filter_all").prop('checked', true).checkboxradio("refresh");
 				}
@@ -439,6 +441,7 @@ $(function(){
 					$("#http_filter_200").prop('checked', false).checkboxradio("refresh");
 					$("#http_filter_404").prop('checked', false).checkboxradio("refresh");
 					$("#http_filter_500").prop('checked', false).checkboxradio("refresh");
+					$("#http_filter_filtered").prop('checked', false).checkboxradio("refresh");
 				} 
 				else {
 					$("#http_filter_all").attr('checked', false).checkboxradio("refresh");
@@ -552,6 +555,7 @@ $(function(){
 			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_200" class="http_filter_checkbox"><img src="images/icon-check.png" height="12">&nbsp;OK</label>';
 			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_404" class="http_filter_checkbox"><img src="images/icon-notfound.png" height="12">&nbsp;Not found</label>';
 			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_500" class="http_filter_checkbox"><img src="images/icon-locked.png" height="12">&nbsp;Access denied</label>';
+			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_filtered" class="http_filter_checkbox"><img src="images/icon-filtered.png" height="12">&nbsp;Filtered</label>';
 			http_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="http_filter_0" class="http_filter_checkbox"><img src="images/icon-question.png" height="12">&nbsp;Not sent yet (cached)</label>';
 			// http_table+= '</div>';
 			http_table+= '</fieldset>';
@@ -621,6 +625,7 @@ $(function(){
 			http_filter_200 = $("#http_filter_200").prop('checked');
 			http_filter_404 = $("#http_filter_404").prop('checked');
 			http_filter_500 = $("#http_filter_500").prop('checked');
+			http_filter_filtered = $("#http_filter_filtered").prop('checked');
 			http_filter_all = $("#http_filter_all").prop('checked');
 
 			// Loop through data
@@ -677,6 +682,7 @@ $(function(){
 				// Filter 
 				var http_filter_show_entry;
 				if( http_filter_all ) http_filter_show_entry = 1;
+				if ( http_filter_filtered && ( typeof resp.http[topic].regexfilterline != 'undefined' || typeof resp.doNotForward[topic] != 'undefined') ) http_filter_show_entry = 1;
 				if ( http_filter_500 && toMShighest == '500' ) http_filter_show_entry = 1;
 				if ( http_filter_404 && toMShighest == '404' ) http_filter_show_entry = 1;
 				if ( http_filter_200 && toMShighest == '200' ) http_filter_show_entry = 1;
