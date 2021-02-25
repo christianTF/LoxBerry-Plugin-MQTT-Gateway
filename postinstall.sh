@@ -65,6 +65,8 @@ cp -f -r /tmp/$PTEMPDIR\_upgrade/config/$PDIR/* $LBHOMEDIR/config/plugins/$PDIR/
 echo "<INFO> Copy back existing data files"
 cp -f -r /tmp/$PTEMPDIR\_upgrade/data/transform/custom/ $PDATA/transform/custom/
 chmod -R 0774 $LBHOMEDIR/data/plugins/$PDIR/transform/custom/
+cp -f -r /tmp/$PTEMPDIR\_upgrade/data/transform/datastore/ $PDATA/transform/datastore/
+chmod -R 0774 $LBHOMEDIR/data/plugins/$PDIR/transform/datastore/
 
 # echo "<INFO> Remove temporary folders"
 # rm -f -r /tmp/$PTEMPDIR\_upgrade
@@ -77,6 +79,8 @@ mkdir -p "$PDATA/transform/custom/udpin" > /dev/null
 mkdir -p "$PDATA/transform/custom/mqttin" > /dev/null
 mkdir -p "$PDATA/transform/shipped/mqttin" > /dev/null
 mkdir -p "$PDATA/transform/shipped/udpin" > /dev/null
+mkdir -p "$PDATA/transform/datastore" > /dev/null
+
 
 echo "<INFO> Updating configuration"
 sudo $PBIN/updateconfig.pl
