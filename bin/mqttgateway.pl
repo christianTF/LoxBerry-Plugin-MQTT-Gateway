@@ -924,10 +924,12 @@ sub read_config
 			LOGINF "Ordering subscriptions by topic level";
 			@subscriptions = sort { ($b=~tr/\///) <=> ($a=~tr/\///) } @subscriptions;
 			
-			# Fill up the subscriptions_toms array;
-			my @default_arr = ( $cfg->{Main}->{msno} );
 			
 			LOGINF "Reading your config about what topics to send to what Miniserver";
+			# Fill up the subscriptions_toms array;
+			my @default_arr = ( $cfg->{Main}->{msno} );
+			@subscriptions_toms = ();
+			
 			foreach my $sub ( @subscriptions ) {
 				my $sub_set;
 				foreach my $cfg_sub ( @{$cfg->{subscriptions}} ) {
