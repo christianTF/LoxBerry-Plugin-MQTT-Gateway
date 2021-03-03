@@ -101,6 +101,7 @@ sub setcred
 	
 	$cred->{Credentials} = \%Credentials;
 	$credobj->write();
+	chmod 0640, $credobj->filename();
 
 	if($cred) {
 		%response = (%response, %$cred);
