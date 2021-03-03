@@ -62,14 +62,11 @@ PBIN=$LBPBIN/$PDIR
 
 echo "<INFO> Copy back existing config files"
 cp -f -r /tmp/$PTEMPDIR\_upgrade/config/$PDIR/* $LBHOMEDIR/config/plugins/$PDIR/ 
-chmod 0640 $LBHOMEDIR/config/plugins/$PDIR/cred.json
-chmod 0640 $LBHOMEDIR/config/plugins/$PDIR/cred.json.*
 echo "<INFO> Copy back existing data files"
 cp -f -r /tmp/$PTEMPDIR\_upgrade/data/transform/custom/ $PDATA/transform/custom/
 chmod -R 0774 $LBHOMEDIR/data/plugins/$PDIR/transform/custom/
 cp -f -r /tmp/$PTEMPDIR\_upgrade/data/transform/datastore/ $PDATA/transform/datastore/
 chmod -R 0774 $LBHOMEDIR/data/plugins/$PDIR/transform/datastore/
-
 
 # echo "<INFO> Remove temporary folders"
 # rm -f -r /tmp/$PTEMPDIR\_upgrade

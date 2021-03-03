@@ -138,7 +138,6 @@ sub update_config
 		$Credentials{brokerpass} = $cfg->{Main}{brokerpass};
 		$cred->{Credentials} = \%Credentials;
 		$credobj->write();
-		chmod 0640 $credobj->filename();
 		delete $cfg->{Main}{brokeruser};
 		delete $cfg->{Main}{brokerpass};
 		LOGWARN "Migrated MQTT credentials.";
@@ -194,7 +193,6 @@ sub update_config
 		
 		$cred->{Credentials} = \%Credentials;
 		$credobj->write();
-		chmod 0640 $credobj->filename();
 		
 		print STDERR "COMMAND: $lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} brokerpsk=$Credentials{brokerpsk} enable_mosquitto=$cfg->{Main}{enable_mosquitto}\n";
 		
