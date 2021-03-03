@@ -602,8 +602,14 @@ $(function(){
 			//console.log( get( resp, 'health_state.stats.httpresp') );
 			// $("#http_count_noaccess").text(" "+resp.health_state.stats.httpresp[500]);
 			var http_noaccess = get( resp, 'health_state.stats.httpresp');
-			http_noaccess = typeof http_noaccess != 'undefined' && http_noaccess[500] != 'undefined' ? http_noaccess[500] : 0; 
-			if( http_noaccess > 0 ) 
+			var http_noaccess_count=0;
+			if( typeof http_noaccess != 'undefined' ) {
+				http_noaccess_401 = typeof http_noaccess[401] != 'undefined' ? http_noaccess[401] : 0 ; 
+				http_noaccess_403 = typeof http_noaccess[403] != 'undefined' ? http_noaccess[403] : 0; 
+				http_noaccess_500 = typeof http_noaccess[500] != 'undefined' ? http_noaccess[500] : 0; 
+				http_noaccess_count = http_noaccess_401+http_noaccess_403+http_noaccess_500;
+			}
+			if( http_noaccess_count > 0 ) 
 				$("#head_mqtthttp_permissionErrors").show();
 			else
 				$("#head_mqtthttp_permissionErrors").hide();
@@ -647,8 +653,11 @@ $(function(){
 							case '404': 
 								httpSubmitIcon = 'icon-notfound.png'; httpSubmitText = 'MS'+i+': HTTP 404 Input not available';
 								break;
+							case '401':
+							case '403':
 							case '500': 
-								httpSubmitIcon = 'icon-locked.png'; httpSubmitText = 'MS'+i+': HTTP 500 Possibly permission denied'; 
+								httpSubmitIcon = 'icon-locked.png'; httpSubmitText = 'MS'+i+': HTTP '+toMSarr[i].code+' Possibly permission denied'; 
+								toMShighest='500';
 								break;
 							case '200':
 								httpSubmitIcon = 'icon-check.png'; httpSubmitText = 'MS'+i+': HTTP 200 Value submitted'; 
