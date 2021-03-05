@@ -276,7 +276,7 @@ sub udpin
 			$udptopic = $contjson->{topic};
 			$udpmessage = $contjson->{value};
 			$command = is_enabled($contjson->{retain}) ? "retain" : "publish";
-			$transformer = $contjson->{transform};
+			$transformer = defined $contjson->{transform} ? $contjson->{transform} : undef;
 		}
 	}
 	
