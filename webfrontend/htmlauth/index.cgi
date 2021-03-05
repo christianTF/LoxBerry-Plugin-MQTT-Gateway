@@ -130,7 +130,10 @@ if( $q->{ajax} ) {
 			PeerAddr => 'localhost',
 		) or print "MQTT index.cgi: Could not create udp socket to gateway: $!\n";
 		
-		my %pub_data = ( topic => $q->{topic}, value => $q->{value}, retain => $q->{retain} );
+		my %pub_data = ( topic => $q->{topic}, value => $q->{value}, retain => $q->{retain}, transform => $q->{transform} );
+		if( $q->{transform} eq "") {
+			delete $pub_data{transform};
+		}
 		require JSON;
 		$pubdata_json = to_json(\%pub_data);
 		$udpoutsock->send( $pubdata_json );

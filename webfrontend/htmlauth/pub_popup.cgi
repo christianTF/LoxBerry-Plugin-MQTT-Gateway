@@ -5,6 +5,9 @@ use CGI;
 
 my $template;
 
+my $transformerdatafile = "/dev/shm/mqttgateway_transformers.json";
+
+
 my $plugintitle = "Quick Publisher";
 my $helplink = "nopanels";
   
@@ -17,6 +20,7 @@ $template = HTML::Template->new(
 		die_on_bad_params => 0,
 	);
 
+$template->param( "transformers", LoxBerry::System::read_file( $transformerdatafile ) );
 print $template->output();
 
 # LoxBerry::Web::lbfooter();
