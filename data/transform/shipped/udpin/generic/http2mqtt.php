@@ -103,7 +103,7 @@
 	
 	$dataset["$topic/_httpstatus"] = $status_code;
 	// Output data as json
-	echo json_encode( $dataset );
+	echo json_encode( $dataset, JSON_UNESCAPED_UNICODE );
 	
 	// Thank you and good bye
 	exit;

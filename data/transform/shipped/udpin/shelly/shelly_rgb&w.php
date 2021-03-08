@@ -45,5 +45,5 @@
 			error_log('Transformer shelly_rgb&w: Wrong parameters (white or rgb missing)');
 	}
 	
-	echo $topic."#".json_encode($data)."\n";
+	echo $topic."#".json_encode($data, JSON_UNESCAPED_UNICODE )."\n";
 	

@@ -56,8 +56,8 @@
 	$calc->get();
 	
 	
-	echo $topic."#".json_encode($calc->store->Result)."\n";
-	echo $topic."_Settings#".json_encode($calc->store->Settings)."\n";
+	echo $topic."#".json_encode($calc->store->Result, JSON_UNESCAPED_UNICODE)."\n";
+	echo $topic."_Settings#".json_encode($calc->store->Settings, JSON_UNESCAPED_UNICODE)."\n";
 	
 
 
@@ -106,7 +106,7 @@ class CALCULATIONS
 
 	public function __destruct () 
 	{
-		file_put_contents( $this->datastorefile, json_encode( $this->store, JSON_PRETTY_PRINT ) );
+		file_put_contents( $this->datastorefile, json_encode( $this->store, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
 	}
 
 	public function set( $value ) 

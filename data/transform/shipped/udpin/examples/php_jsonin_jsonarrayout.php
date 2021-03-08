@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 	if( $argv[1] == 'skills' ) {
-		echo "description=Example of incoming json and outgoing json array data\n";
+		echo "description=Developer example of incoming json and outgoing json array data\n";
 		echo "link=https://www.loxwiki.eu/x/mQBABQ\n";
 		echo "input=json\n";
 		echo "output=json\n";
@@ -37,4 +37,4 @@
 	array_push( $dataarray, array ( $datetopic => date('m.d.y') ) );
 	
 	// Output data as json
-	echo json_encode( $dataarray );
+	echo json_encode( $dataarray, JSON_UNESCAPED_UNICODE );
