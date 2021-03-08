@@ -120,9 +120,9 @@ function isJson($string) {
 	if($string[0] !== '[' && $string[0] !== '{') { 
 		return false;
 	}
-	json_decode($string);
+	$jsonobj = json_decode($string);
 	if( json_last_error() == JSON_ERROR_NONE ) {
-		return $string;
+		return json_encode( $jsonobj, JSON_UNESCAPED_UNICODE );
 	}
 	return false;
 }
