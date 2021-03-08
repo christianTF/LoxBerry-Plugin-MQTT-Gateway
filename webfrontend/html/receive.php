@@ -125,7 +125,7 @@ function send_udp($topic, $data)
 	}
 	
 	$send['topic'] = $topic;
-	$send['value'] = json_encode($data);
+	$send['value'] = json_encode($data, JSON_UNESCAPED_UNICODE);
 	
 	if( !defined('PUBLISH') ) {
 		LOGOK("Data will be sent as RETAIN");
@@ -134,8 +134,8 @@ function send_udp($topic, $data)
 		LOGOK("Data will sent as PUBLISH");
 	}
 	
-	$sendjson = json_encode($send);
-    $len = strlen($sendjson);
+	$sendjson = json_encode($send, JSON_UNESCAPED_UNICODE);
+	$len = strlen($sendjson);
 
     $sent = socket_sendto($sock, $sendjson, $len, 0, '127.0.0.1', $udpport);
 	if($sent < 0) {
