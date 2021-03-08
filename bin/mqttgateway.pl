@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+use utf8;
 use FindBin qw($Bin);
 use lib "$Bin/libs";
 
@@ -249,6 +250,7 @@ sub udpin
 	if( $udpmsg ne 'save_relayed_states' ) {
 		LOGOK "UDP IN: $udpremhost (" .  inet_ntoa($ipaddr) . "): $udpmsg";
 	}
+	
 	## Send to MQTT Broker
 			
 	my ($command, $udptopic, $udpmessage, $transformer);
@@ -265,6 +267,7 @@ sub udpin
 		# Check for json content
 		eval {
 				$contjson = from_json($udpmsg);
+				
 		};
 		if($@) {
 			# Not a json message
@@ -412,7 +415,7 @@ sub received
 	if( is_enabled($cfg->{Main}{expand_json}) ) {
 		# Check if message is a json
 		eval {
-			$contjson = decode_json($message);
+			$contjson = from_json($message);
 		};
 		if($@) {
 			# LOGDEB "  Not a valid json message";
