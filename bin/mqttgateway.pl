@@ -3,6 +3,7 @@ use utf8;
 use FindBin qw($Bin);
 use lib "$Bin/libs";
 
+# use open ':std', ':encoding(UTF-8)';
 use Time::HiRes;
 use LoxBerry::IO;
 use LoxBerry::Log;
@@ -255,6 +256,7 @@ sub udpin
 			
 	my ($command, $udptopic, $udpmessage, $transformer);
 	my $contjson;
+
 	
 	# Check for Loxone Logger message
 	if ( $udpmsg =~ /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2});(.*);(.*)/ ) {
@@ -263,18 +265,18 @@ sub udpin
 		$command = 'retain';
 		$udptopic = 'logger/' . $udpremhost_short . '/' . $2;
 		$udpmessage = trim($3);
-	} else {
+	} 
+	else {
 		# Check for json content
 		eval {
 				$contjson = from_json($udpmsg);
-				
 		};
 		if($@) {
 			# Not a json message
 			$udpmsg = trim($udpmsg);
 			($command, $transformer, $udptopic, $udpmessage) = split(/\ /, $udpmsg, 4);
-			
-		} else {
+		} 
+		else {
 			# json message
 			$udptopic = $contjson->{topic};
 			$udpmessage = $contjson->{value};
@@ -283,19 +285,16 @@ sub udpin
 		}
 	}
 	
-	
-	
 	if(lc($command) ne 'publish' and lc($command) ne 'retain' and lc($command) ne 'reconnect' and lc($command) ne 'save_relayed_states') {
 		# Old syntax - move around the values. Old syntax does not support transformers.
 		no warnings;
-		$udpmessage = trim($transformer . ' ' . $udptopic . ' ' . $udpmessage);
+		$udpmessage = trim($transformer.' '.$udptopic.' '.$udpmessage);
 		$udptopic = $command;
 		$command = 'publish';
 		$transformer = undef;
 	}
 	
 	$command = lc($command);
-
 
 
 	# Check if we need to run a transformation
@@ -306,7 +305,7 @@ sub udpin
 			
 		} else {
 			# Without a known transformer, we need to swap data
-			$udpmessage = $udptopic . ' ' . $udpmessage;
+			$udpmessage = trim($udptopic.' '.$udpmessage);
 			$udptopic = $transformer;
 			undef $transformer;
 		}
@@ -407,7 +406,7 @@ sub received
 	my $contjson;
 	
 	utf8::encode($topic);
-	LOGINF "MQTT received: $topic: $message";
+	LOGOK "MQTT received: $topic: $message";
 	
 	# Remember that we have currently have received data
 	$mqtt_data_received = 1;
@@ -446,6 +445,7 @@ sub received
 				for my $record ( keys %$flat_hash ) {
 					my $val = $flat_hash->{$record};
 					$sendhash{"$topic/$record"} = $val;
+					LOGDEB "$topic/$record = $val";
 				}
 			};
 			if($@) { 
