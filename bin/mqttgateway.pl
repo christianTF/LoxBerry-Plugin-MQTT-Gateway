@@ -1266,10 +1266,10 @@ sub save_relayed_states
 	# Delete udp messages older 24 hours
 	if( is_enabled( $cfg->{Main}->{use_udp} ) ) {
 		foreach my $sendtopic (keys %relayed_topics_udp) {
-			if(	defined $relayed_topics_udp{$sendtopic}{timestamp} and $relayed_topics_udp{$sendtopic}{timestamp} < (time - 24*60*60) ) {
+			if(	$relayed_topics_udp{$sendtopic}{timestamp} < (time - 24*60*60) ) {
 				delete $relayed_topics_udp{$sendtopic};
 			}
-			if( defined $relayed_topics_udp{$sendtopic}{message} and $relayed_topics_udp{$sendtopic}{message} eq "" ) {
+			if( $relayed_topics_udp{$sendtopic}{message} eq "" ) {
 				delete $relayed_topics_udp{$sendtopic};
 			}
 		}
