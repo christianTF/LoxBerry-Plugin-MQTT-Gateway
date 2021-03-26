@@ -1462,11 +1462,18 @@ sub trans_process
 	
 	# RUN transformer script
 	#
-	my ($exitcode, $output) = execute( quotemeta($trans_udpin{$transformer}{filename}).' '.$param );
+	my ($exitcode, $output);
+	eval {
+		($exitcode, $output) = execute( quotemeta($trans_udpin{$transformer}{filename}).' '.$param );
+	};
 	
 	# Manage OUTPUT
 	#
-	if( $trans_udpin{$transformer}{output} eq "text" ) {
+	if( $@ ) {
+		LOGERR "Error running transformer: $@";
+		LOGERR "Transformers are only supported starting with LoxBerry 2.0";
+	}
+	elsif( $trans_udpin{$transformer}{output} eq "text" ) {
 		
 		# Transformer text output
 		LOGDEB "Transformer TEXT output:\n".$output;
@@ -1482,7 +1489,8 @@ sub trans_process
 			push @subresponse, \%data;
 		}
 		
-	} elsif( $trans_udpin{$transformer}{output} eq "json" ) {
+	} 
+	elsif( $trans_udpin{$transformer}{output} eq "json" ) {
 		
 		# Transformer json output
 		my $jsonout;
@@ -1530,7 +1538,15 @@ sub trans_skills
 	
 	chmod 0774, $filename;
 	
-	my ($exitcode, $output) = execute( quotemeta($filename). " skills" );
+	my ($exitcode, $output);
+	
+	eval {
+		($exitcode, $output) = execute( quotemeta($filename). " skills" );
+	};
+	if ( $@ ) {
+		LOGWARN "Transformers are only supported starting with LoxBerry 2.0";
+		return;
+	}
 	
 	my %subresponse; 
 	
