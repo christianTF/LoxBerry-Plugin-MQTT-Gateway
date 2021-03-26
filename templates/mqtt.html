@@ -579,6 +579,12 @@ $(function(){
 		
 		function udp_table_skel() {
 			var udp_table = "";
+			udp_table+= '<fieldset data-role="controlgroup" data-type="horizontal" class="udp_filters">';
+			udp_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="udp_filter_unfiltered" class="udp_filter_checkbox" checked><img src="images/icon-filtered.png" height="12">&nbsp;Not filtered</label>';
+			udp_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="udp_filter_filtered" class="udp_filter_checkbox" checked><img src="images/icon-filtered.png" height="12">&nbsp;Filtered</label>';
+			// udp_table+= '<label style="display:inline;"><input type="checkbox" data-mini="true" id="udp_filter_0" class="udp_filter_checkbox"><img src="images/icon-question.png" height="12">&nbsp;Not sent yet (cached)</label>';
+			udp_table+= '</fieldset>';
+			
 			udp_table+= '<form><input id="udp_table_search" data-type="search" data-mini="true"></form>';
 			
 			udp_table += '<table class="topics_table" id="udp_table" data-filter="true" data-input="#udp_table_search">\n';
@@ -634,7 +640,7 @@ $(function(){
 			http_filter_filtered = $("#http_filter_filtered").prop('checked');
 			http_filter_all = $("#http_filter_all").prop('checked');
 
-			// Loop through data
+			// Loop through data (HTTP)
 			Object.entries(resp.http).map(([topic, content]) => {
 				//console.log(resp);
 				
@@ -816,10 +822,15 @@ $(function(){
 			
 			$("#udp_table > tbody").empty();
 			
-			var udp_row = undefined;
+			var udp_row = "";
 			
+			// Get filter flags
 			topics_show_advanced = $("#topics_show_advanced").prop('checked');
+			udp_filter_filtered = $("#udp_filter_filtered").prop('checked');
+			udp_filter_unfiltered = $("#udp_filter_unfiltered").prop('checked');
 			
+			
+			// Loop through data (UDP)
 			Object.entries(resp.udp).map(([topic, content]) => {
 				var d = new Date(content.timestamp*1000); 
 				
@@ -837,6 +848,19 @@ $(function(){
 				if( doNotForward ) {
 					tdClass = 'subscriptionfiltered';
 				}
+				
+				var entry_notforwarded = typeof resp.udp[topic].regexfilterline != 'undefined' || doNotForward != "" ? true : false;
+
+				
+				// Filter
+				var udp_filter_show_entry;
+				if( udp_filter_filtered == true && entry_notforwarded == true ) {
+					udp_filter_show_entry = true;
+				}
+				if ( udp_filter_unfiltered == true && entry_notforwarded != true ) {
+					udp_filter_show_entry = true;
+				}
+				if ( !udp_filter_show_entry ) return;
 				
 				udp_row+= '<tr>\n';
 				udp_row+= '<td class="'+tdClass+' topics_table_udp_data">' + topic + '=' + content.message;
