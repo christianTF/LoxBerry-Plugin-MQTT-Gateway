@@ -492,9 +492,10 @@ sub received
 	my %sendhash_resetaftersend;
 	
 	foreach my $sendtopic (keys %sendhash) {
-		# Generate $sendtopic with / replaced by _ 
+		# Generate $sendtopic with / and % replaced by _
+		# Not allowed in Loxone: /%
 		my $sendtopic_underlined = $sendtopic;
-		$sendtopic_underlined =~ s/\//_/g;
+		$sendtopic_underlined =~ s/[\/%]/_/g;
 		
 		# Skip doNotForward topics
 		if (exists $cfg->{doNotForward}->{$sendtopic_underlined} ) {
