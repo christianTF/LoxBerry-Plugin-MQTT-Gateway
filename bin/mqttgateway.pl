@@ -496,7 +496,7 @@ sub received
 		# Not allowed in Loxone: /%
 		my $sendtopic_underlined = $sendtopic;
 		$sendtopic_underlined =~ s/[\/%]/_/g;
-		
+
 		# Skip doNotForward topics
 		if (exists $cfg->{doNotForward}->{$sendtopic_underlined} ) {
 			LOGDEB "   $sendtopic (incoming value $sendhash{$sendtopic}) skipped - do not forward enabled";
@@ -660,22 +660,22 @@ sub received
 	}
 	# Send via HTTP
 	if( is_enabled($cfg->{Main}{use_http}) ) {
-		# Parse topics to replace / with _ (cached)
+		# Parse topics to replace /% with _ (cached)
 		foreach my $sendtopic (keys %sendhash_cached) {
 			my $newtopic = $sendtopic;
-			$newtopic =~ s/\//_/g;
+			$newtopic =~ s/[\/%]/_/g;
 			$sendhash_cached{$newtopic} = delete $sendhash_cached{$sendtopic};
 		}
-		# Parse topics to replace / with _ (non-cached)
+		# Parse topics to replace /% with _ (non-cached)
 		foreach my $sendtopic (keys %sendhash_noncached) {
 			my $newtopic = $sendtopic;
-			$newtopic =~ s/\//_/g;
+			$newtopic =~ s/[\/%]/_/g;
 			$sendhash_noncached{$newtopic} = delete $sendhash_noncached{$sendtopic};
 		}
-		# Parse topics to replace / with _ (reset-after-send)
+		# Parse topics to replace /% with _ (reset-after-send)
 		foreach my $sendtopic (keys %sendhash_resetaftersend) {
 			my $newtopic = $sendtopic;
-			$newtopic =~ s/\//_/g;
+			$newtopic =~ s/[\/%]/_/g;
 			$sendhash_resetaftersend{$newtopic} = delete $sendhash_resetaftersend{$sendtopic};
 		}
 		
