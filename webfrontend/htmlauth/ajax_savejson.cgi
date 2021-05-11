@@ -69,6 +69,8 @@ sub save_json
 		
 		$generaljson->{Mqtt}->{Brokerhost} = $brokerhost;
 		$generaljson->{Mqtt}->{Brokerport} = $brokerport;
+		
+		$generaljson->{Mqtt}->{Udpinport} = $cfg->{Main}->{udpinport};
 	
 	};
 

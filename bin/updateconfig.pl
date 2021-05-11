@@ -233,6 +233,9 @@ sub update_config
 		$generaljson->{Mqtt}->{Brokerhost} = $brokerhost;
 		$generaljson->{Mqtt}->{Brokerport} = $brokerport;
 		
+		$generaljson->{Mqtt}->{Udpinport} = $cfg->{Main}->{udpinport};
+		
+		
 	};
 	if( $@ ) {
 		LOGWARN "Could not migrate MQTT broker settings to LoxBerry.";
