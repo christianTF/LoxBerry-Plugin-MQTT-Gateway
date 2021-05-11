@@ -30,6 +30,16 @@ if($> != 0) {
 	}	
 }
 
+# LoxBerry::System::General, from LB2.2
+my $generaljsonobj;
+my $generaljson;
+eval {
+	require LoxBerry::System::General;
+	$generaljsonobj = LoxBerry::System::General->new();
+	$generaljson = $generaljsonobj->open( writeonclose => 1 );
+};
+
+# Classical credential files
 my $credobj = LoxBerry::JSON::JSONIO->new();
 my $cred = $credobj->open(filename => $credfile);
 # use Data::Dumper;
@@ -102,6 +112,22 @@ sub setcred
 	$cred->{Credentials} = \%Credentials;
 	$credobj->write();
 	chmod 0640, $credobj->filename();
+
+	# General.json
+	eval {
+		foreach( keys %Credentials ) {
+			$generaljson->{Mqtt}->{ucfirst($_)} = $Credentials{$_};
+		}
+		if( is_enabled( $enable_mosquitto ) ) {
+			$generaljson->{Mqtt}->{Uselocalbroker} = 1;
+		} 
+		else {
+			$generaljson->{Mqtt}->{Uselocalbroker} = 0;
+		}
+		$generaljson->{Mqtt}->{Websocketport} = defined $websocketport ? trim($websocketport) : 9002;
+		
+	};
+
 
 	if($cred) {
 		%response = (%response, %$cred);

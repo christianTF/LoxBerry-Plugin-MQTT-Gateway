@@ -55,5 +55,26 @@ sub save_json
 	open(my $fh, '>', $cfgfile) or return "Could not open file '$cfgfile' $!";
 	print $fh $jsoninput;
 	close $fh;	
+	
+	# LoxBerry::System::General, from LB2.2
+	my $generaljsonobj;
+	my $generaljson;
+	eval {
+		require LoxBerry::System::General;
+		$generaljsonobj = LoxBerry::System::General->new();
+		$generaljson = $generaljsonobj->open( writeonclose => 1 );
+	
+		my ($brokerhost, $brokerport) = split( ":", $cfg->{Main}->{brokeraddress} , 2 );
+		$brokerport = defined $brokerport ? $brokerport : "1883";
+		
+		$generaljson->{Mqtt}->{Brokerhost} = $brokerhost;
+		$generaljson->{Mqtt}->{Brokerport} = $brokerport;
+	
+	};
+
+	
+	
+	
+	
 	return;
 }

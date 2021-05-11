@@ -170,31 +170,32 @@ sub update_config
 	}
 	
 	# Create Mosquitto config and password
+	my %Credentials;
+	my $credobj = LoxBerry::JSON::JSONIO->new();
+	my $cred = $credobj->open(filename => $credfile);
+	
+	if( !defined $cred->{Credentials}->{brokeruser} ) {
+		$Credentials{brokeruser} = 'loxberry';
+		$Credentials{brokerpass} = generate(16);
+		LOGWARN "New Mosquitto configuration was created with a generated password.";
+		LOGWARN "Check the plugin settings to see and change your new credentials.";
+	} else {
+		$Credentials{brokeruser} = $cred->{Credentials}->{brokeruser};
+		$Credentials{brokerpass} = $cred->{Credentials}->{brokerpass};
+	}
+	
+	if( !$cred->{Credentials}->{brokerpsk} or $cred->{Credentials}->{brokerpsk} eq "null") {
+		$Credentials{brokerpsk} = generate_hexkey(240);
+		LOGWARN "New 240-bit TLS Pre-Shared key was created.";
+	} else {
+		$Credentials{brokerpsk} = $cred->{Credentials}->{brokerpsk};
+	}
+	
+	$cred->{Credentials} = \%Credentials;
+	$credobj->write();
+	chmod 0640, $credobj->filename();
+	
 	if( is_enabled($cfg->{Main}{enable_mosquitto}) ) { 
-		my $credobj = LoxBerry::JSON::JSONIO->new();
-		my $cred = $credobj->open(filename => $credfile);
-		my %Credentials;
-		
-		if( !defined $cred->{Credentials}->{brokeruser} ) {
-			$Credentials{brokeruser} = 'loxberry';
-			$Credentials{brokerpass} = generate(16);
-			LOGWARN "New Mosquitto configuration was created with a generated password.";
-			LOGWARN "Check the plugin settings to see and change your new credentials.";
-		} else {
-			$Credentials{brokeruser} = $cred->{Credentials}->{brokeruser};
-			$Credentials{brokerpass} = $cred->{Credentials}->{brokerpass};
-		}
-		
-		if( !$cred->{Credentials}->{brokerpsk} or $cred->{Credentials}->{brokerpsk} eq "null") {
-			$Credentials{brokerpsk} = generate_hexkey(240);
-			LOGWARN "New 240-bit TLS Pre-Shared key was created.";
-		} else {
-			$Credentials{brokerpsk} = $cred->{Credentials}->{brokerpsk};
-		}
-		
-		$cred->{Credentials} = \%Credentials;
-		$credobj->write();
-		chmod 0640, $credobj->filename();
 		
 		print STDERR "COMMAND: $lbphtmlauthdir/ajax_brokercred.cgi action=setcred brokeruser=$Credentials{brokeruser} brokerpass=$Credentials{brokerpass} brokerpsk=$Credentials{brokerpsk} enable_mosquitto=$cfg->{Main}{enable_mosquitto}\n";
 		
@@ -205,6 +206,43 @@ sub update_config
 	}
 	
 	$json->write();
+	
+	LOGINF "Migrating MQTT broker settings to LoxBerry general.json";
+	# LoxBerry::System::General, from LB2.2
+	my $generaljsonobj;
+	my $generaljson;
+	eval {
+		require LoxBerry::System::General;
+		$generaljsonobj = LoxBerry::System::General->new();
+		$generaljson = $generaljsonobj->open( writeonclose => 1 );
+
+		foreach( keys %Credentials ) {
+			$generaljson->{Mqtt}->{ucfirst($_)} = $Credentials{$_};
+		}
+		if( is_enabled($cfg->{Main}{enable_mosquitto}) ) {
+			$generaljson->{Mqtt}->{Uselocalbroker} = 1;
+		} 
+		else {
+			$generaljson->{Mqtt}->{Uselocalbroker} = 0;
+		}
+		$generaljson->{Mqtt}->{Websocketport} = defined $cfg->{Main}{websocketport} ? trim($cfg->{Main}{websocketport}) : 9002;
+		
+		my ($brokerhost, $brokerport) = split( ":", $cfg->{Main}->{brokeraddress} , 2 );
+		$brokerport = defined $brokerport ? $brokerport : "1883";
+		
+		$generaljson->{Mqtt}->{Brokerhost} = $brokerhost;
+		$generaljson->{Mqtt}->{Brokerport} = $brokerport;
+		
+	};
+	if( $@ ) {
+		LOGWARN "Could not migrate MQTT broker settings to LoxBerry.";
+		LOGOK "This is not a big deal for now, we'll try that later again. MQTT Gateway will still work.";
+	} else {
+		LOGOK "MQTT broker settings are now part of LoxBerry's main configuration file.";
+	}
+	
+	
+	
 	`chown loxberry:loxberry $cfgfile`;
 	`chown loxberry:loxberry $credfile`;
 	
