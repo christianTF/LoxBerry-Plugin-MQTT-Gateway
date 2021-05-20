@@ -1465,7 +1465,9 @@ sub trans_process
 	#
 	my ($exitcode, $output);
 	eval {
-		($exitcode, $output) = execute( quotemeta($trans_udpin{$transformer}{filename}).' '.$param );
+		my $execcall = quotemeta($trans_udpin{$transformer}{filename}).' '.$param;
+		LOGDEB "Executing: " . $execcall;
+		($exitcode, $output) = execute( $execcall );
 	};
 	
 	# Manage OUTPUT
