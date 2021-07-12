@@ -40,7 +40,7 @@
 		<TMPL_VAR mslist_select_html>
 	</div>
 
-	<div data-role="fieldcontain">
+	<div data-role="fieldcontain" class="main_udpport_block">
 		<label for="Main.udpport">Miniserver UDP port</label>
 		<input name="Main.udpport" id="Main.udpport" type="text" />
 		<p class="hint">Default UDP port is <span class="mono">11883</span>. If UDP is enabled, data <i>from the broker</i> are sent to this udp port on the Miniserver.</p>
@@ -1332,6 +1332,10 @@ $(function() {
 		$('select').selectmenu('refresh', true);
 		$('input:checkbox').checkboxradio('refresh');
 		
+		// Hide UDP block if UDP is disabled
+		if( ! $("#Main\\.use_udp").is(":checked") )
+			$(".main_udpport_block").hide();
+		
 		// Set SecurePIN from session storage
 		$('#securepin').val(sessionStorage.getItem("securePIN"));
 		if( $('#securepin').val() ) {
@@ -1422,6 +1426,9 @@ $(function() {
 			var idarray = id.split(".");
 			if(inputType === "checkbox") {
 				cfg.Main[idarray[1]] = $(this).is(":checked");
+				
+				// console.log("idarray", idarray[1]);
+				
 				if(id == "Main.enable_mosquitto") 
 					creds_changed = true;
 					if($(this).is(":checked")) {
@@ -1432,12 +1439,21 @@ $(function() {
 						$("#brokerpsk_block").fadeOut();
 						$("#brokerwebsocket_block").fadeOut();
 					}
+				
+				if(id == "Main.use_udp") {
+					if( $(this).is(":checked") )
+						$(".main_udpport_block").fadeIn();
+					else
+						$(".main_udpport_block").fadeOut();
+				}
+
 					
 			} 
 			else if( inputType === "radio" ) {
 				// cfg.Main[idarray[1]] = $(this).is(":checked");
 				var namearray = $(this)[0].name.split(".");
-				cfg.Main[namearray[1]] = $(this).val(); 
+				cfg.Main[namearray[1]] = $(this).val();
+				
 			}
 			else if ( idarray[1] == "websocketport" ) {
 				creds_changed = true;
