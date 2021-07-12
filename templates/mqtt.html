@@ -10,6 +10,10 @@
 {
   display: none !important;
 }
+
+.datahidden {
+	display:none;
+}
 </style>
 
 <TMPL_IF FORM_SETTINGS>
@@ -448,6 +452,20 @@ $(function(){
 				}
 			});
 			
+			// Bind Copy Clipboard button
+			jQuery(document).on('click', '.copyClipboard', function(event, ui){
+				var target = $(this).next('input');
+				$(target).removeClass("datahidden");
+				target[0].select();
+				document.execCommand("copy");
+				$(target).addClass("datahidden");
+				
+				return;
+				console.log("Copy target", target[0]);
+				copyToClipboard(target[0]);
+			});
+			
+			
 			updateTopics();
 		});
 
@@ -731,6 +749,9 @@ $(function(){
 				http_row+= '<img src="images/'+httpSubmitIcon+'" style="user-select: none;padding-right:6px;">';
 
 				http_row+= topic;
+				http_row+=` <a href="#" class="ui-mini ui-btn ui-shadow ui-icon-clipboard ui-btn-inline copyClipboard" style="padding:1px;font-size:60%;height:12px;width:26px;">Copy</a>`;
+				http_row+= `<input type="text" value="${topic}" class="datahidden">`;
+				
 				
 				if( topics_show_advanced == true ) {
 					http_row+= '<br><span style="font-size: 75%">(Topic <i>' + content.originaltopic + '</i>)</span>';
@@ -897,8 +918,16 @@ $(function(){
 					udp_row+= 'Subscription filtered by RegEx line '+subscriptionfiltered+'<br>';
 				if( doNotForward ) 
 					udp_row+= '<i>Do not forward</i> is active';
-				else if ( !doNotForward && !subscriptionfiltered )
-					udp_row+= 'MQTT:\\i' + topic.replace("\\", "\\\\") + '=\\i\\v';
+				else if ( !doNotForward && !subscriptionfiltered ) {
+					topic_tmp = 'MQTT:\\i' + topic.replace("\\", "\\\\") + '=\\i\\v';
+					udp_row+= topic_tmp;
+					
+					udp_row+=`<a href="#" class="ui-mini ui-btn ui-shadow ui-icon-clipboard ui-btn-inline copyClipboard" style="padding:1px;font-size:75%;height:12px;width:26px;">Copy</a>`;
+					udp_row+= `<input type="text" value="${topic_tmp}" class="datahidden">`;
+					
+					
+				}
+				
 				udp_row+= '</td>'
 				
 				
@@ -914,6 +943,57 @@ $(function(){
 			// $("#udp_table").trigger('create');
 			$("#udp_table tbody").append(udp_row);
 			$("#udp_table").filterable('refresh');
+		}
+		
+		// https://stackoverflow.com/a/22581382/3466839
+		function copyToClipboard(elem) {
+			  // create hidden text element, if it doesn't already exist
+			var targetId = "_hiddenCopyText_";
+			var isInput = elem.tagName === "INPUT" || elem.tagName === "TEXTAREA";
+			var origSelectionStart, origSelectionEnd;
+			if (isInput) {
+				// can just use the original source element for the selection and copy
+				target = elem;
+				origSelectionStart = elem.selectionStart;
+				origSelectionEnd = elem.selectionEnd;
+			} else {
+				// must use a temporary form element for the selection and copy
+				target = document.getElementById(targetId);
+				if (!target) {
+					var target = document.createElement("textarea");
+					target.style.position = "absolute";
+					target.style.left = "-9999px";
+					target.style.top = "0";
+					target.id = targetId;
+					document.body.appendChild(target);
+				}
+				target.textContent = elem.textContent;
+			}
+			// select the content
+			var currentFocus = document.activeElement;
+			target.focus();
+			target.setSelectionRange(0, target.value.length);
+			
+			// copy the selection
+			var succeed;
+			try {
+				  succeed = document.execCommand("copy");
+			} catch(e) {
+				succeed = false;
+			}
+			// restore original focus
+			if (currentFocus && typeof currentFocus.focus === "function") {
+				currentFocus.focus();
+			}
+			
+			if (isInput) {
+				// restore prior selection
+				elem.setSelectionRange(origSelectionStart, origSelectionEnd);
+			} else {
+				// clear temporary content
+				target.textContent = "";
+			}
+			return succeed;
 		}
 		
 		function getSelectedText() {
