@@ -87,7 +87,15 @@ LOGINF("Looping through POST variables");
 $counter = 0;
 foreach($_POST as $variable => $value) {
    LOGDEB("   Variable '$variable': '$value'");
-   $data['POST'][$variable] = $value;
+   // Check if variable content is a json
+   $postjson = json_decode($value, true);
+   if(!empty($postjson)) {
+	   LOGINF("POST variable $variable used as json");
+	   $data['POST'][$variable] = $postjson;
+   }
+   else {
+	  $data['POST'][$variable] = $value;
+   }
    $counter++;
 }
 LOGOK("POST: $counter variables added");
