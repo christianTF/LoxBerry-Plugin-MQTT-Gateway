@@ -12,7 +12,7 @@ $client_id = uniqid(gethostname()."_client");
 // Value we'd like to publish
 $value = 12345;
  
-// Be careful about the required namespace on inctancing new objects:
+// Be careful about the required namespace on instancing new objects:
 $mqtt = new Bluerhinos\phpMQTT($creds['brokerhost'],  $creds['brokerport'], $client_id);
     if( $mqtt->connect(true, NULL, $creds['brokeruser'], $creds['brokerpass'] ) ) {
         $mqtt->publish("testing/topic", $value, 0, 1);
